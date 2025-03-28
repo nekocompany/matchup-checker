@@ -1,0 +1,9 @@
+{
+  "name": "Ryu",
+  "moves": [
+    { "id": "moveA", "name": "技A", "guardAdvantage": -1 },
+    { "id": "moveB", "name": "技B", "guardAdvantage": -2 },
+    { "id": "moveC", "name": "技C", "guardAdvantage": 0 },
+    { "id": "moveD", "name": "技D", "guardAdvantage": 2 }
+  ]
+}
