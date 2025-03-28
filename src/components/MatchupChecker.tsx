@@ -41,6 +41,7 @@ const MatchupChecker: React.FC = () => {
   const [selectedEnemyMove, setSelectedEnemyMove] = useState<EnemyMove | null>(null);
   const [opponentStartup, setOpponentStartup] = useState<number>(4);
   const [viewMode, setViewMode] = useState<'detail' | 'matrix'>('detail');
+  const [pinnedMoves, setPinnedMoves] = useState<string[]>([]);
 
   useEffect(() => {
     fetch('/data/character_list.json')
@@ -55,6 +56,7 @@ const MatchupChecker: React.FC = () => {
         const filtered = data.filter((m: Move) => m.type !== '共通システム');
         const sorted = filtered.sort((a: Move, b: Move) => toValidStartup(a.startup) - toValidStartup(b.startup));
         setPlayerData({ name: player, moves: sorted });
+        setPinnedMoves([]); // リセット
       });
   }, [player]);
 
@@ -94,6 +96,24 @@ const MatchupChecker: React.FC = () => {
     return move.name;
   };
 
+  const getSortedPlayerMoves = (): Move[] => {
+    if (!playerData) return [];
+    const moves = [...playerData.moves];
+    return moves.sort((a, b) => {
+      const aPinned = pinnedMoves.includes(a.name);
+      const bPinned = pinnedMoves.includes(b.name);
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+      return toValidStartup(a.startup) - toValidStartup(b.startup);
+    });
+  };
+
+  const togglePin = (moveName: string) => {
+    setPinnedMoves((prev) =>
+      prev.includes(moveName) ? prev.filter((name) => name !== moveName) : [...prev, moveName]
+    );
+  };
+
   return (
     <div>
       <h2>Matchup Checker</h2>
@@ -129,6 +149,26 @@ const MatchupChecker: React.FC = () => {
         </label>
       </div>
 
+      {viewMode === 'matrix' && playerData && (
+        <div>
+          <label>
+            表の上に固定する技:
+            {playerData.moves.map((move, index) => (
+              <div key={index}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={pinnedMoves.includes(move.name)}
+                    onChange={() => togglePin(move.name)}
+                  />
+                  {formatPlayerMoveName(move)}
+                </label>
+              </div>
+            ))}
+          </label>
+        </div>
+      )}
+
       {viewMode === 'detail' && opponentData && (
         <div>
           <label>
@@ -146,7 +186,7 @@ const MatchupChecker: React.FC = () => {
               <tr><th>技名</th><th>発生</th><th>判定</th></tr>
             </thead>
             <tbody>
-              {playerData?.moves.map((move, index) => (
+              {getSortedPlayerMoves().map((move, index) => (
                 <tr key={index}>
                   <td>{formatPlayerMoveName(move)}</td>
                   <td>{move.startup}</td>
@@ -170,7 +210,7 @@ const MatchupChecker: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {playerData.moves.map((pm, idx) => (
+              {getSortedPlayerMoves().map((pm, idx) => (
                 <tr key={idx}>
                   <td>{formatPlayerMoveName(pm)}</td>
                   {opponentData.moves.map((em, j) => (
