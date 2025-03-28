@@ -32,6 +32,28 @@ const toValidGuard = (s: string): number => {
   return /^[-+]?\d+$/.test(s.trim()) ? parseInt(s.trim()) : Number.MIN_SAFE_INTEGER;
 };
 
+const extractGuardValue = (move: EnemyMove): string => {
+  const match = move.guard?.trim().match(/^[-+]?\d+$/);
+  return match ? `(${match[0]})` : '';
+};
+
+const splitNameSmart = (name: string): [string, string] => {
+  const bracketMatch = name.match(/^([\[【].*?[\]】])\s*(.*)/);
+  if (bracketMatch) return [bracketMatch[1], bracketMatch[2]];
+
+  const parenMatch = name.match(/^(.*?)(\s*\(.*\))$/);
+  if (parenMatch) return [parenMatch[1], parenMatch[2]];
+
+  const spaceIndex = name.indexOf(' ');
+  if (spaceIndex > 0) return [name.slice(0, spaceIndex), name.slice(spaceIndex + 1)];
+
+  const zspaceIndex = name.indexOf('　');
+  if (zspaceIndex > 0) return [name.slice(0, zspaceIndex), name.slice(zspaceIndex + 1)];
+
+  const mid = Math.floor(name.length / 2);
+  return [name.slice(0, mid), name.slice(mid)];
+};
+
 const MatchupChecker: React.FC = () => {
   const [characterList, setCharacterList] = useState<{ [key: string]: { name_jp: string; url: string } }>({});
   const [player, setPlayer] = useState<string>('ken');
@@ -56,7 +78,7 @@ const MatchupChecker: React.FC = () => {
         const filtered = data.filter((m: Move) => m.type !== '共通システム');
         const sorted = filtered.sort((a: Move, b: Move) => toValidStartup(a.startup) - toValidStartup(b.startup));
         setPlayerData({ name: player, moves: sorted });
-        setPinnedMoves([]); // リセット
+        setPinnedMoves([]);
       });
   }, [player]);
 
@@ -78,14 +100,6 @@ const MatchupChecker: React.FC = () => {
     if (s < diff) return '〇';
     if (s === diff) return '△';
     return '×';
-  };
-
-  const formatEnemyMoveName = (move: EnemyMove) => {
-    const guardValue = move.guard?.trim();
-    if (guardValue && /^[-+]?\d+$/.test(guardValue)) {
-      return `${move.name} (${guardValue})`;
-    }
-    return move.name;
   };
 
   const formatPlayerMoveName = (move: Move) => {
@@ -176,7 +190,7 @@ const MatchupChecker: React.FC = () => {
             <select onChange={(e) => setSelectedEnemyMove(opponentData.moves.find((m) => m.name === e.target.value) || null)}>
               <option value="">--</option>
               {opponentData.moves.map((move, index) => (
-                <option key={index} value={move.name}>{formatEnemyMoveName(move)}</option>
+                <option key={index} value={move.name}>{move.name}</option>
               ))}
             </select>
           </label>
@@ -204,9 +218,16 @@ const MatchupChecker: React.FC = () => {
             <thead>
               <tr>
                 <th></th>
-                {opponentData.moves.map((em, idx) => (
-                  <th key={idx} style={{ whiteSpace: 'nowrap' }}>{formatEnemyMoveName(em)}</th>
-                ))}
+                {opponentData.moves.map((em, idx) => {
+                  const [line1, line2] = splitNameSmart(em.name);
+                  return (
+                    <th key={idx} style={{ whiteSpace: 'nowrap' }}>
+                      <div>{extractGuardValue(em)}</div>
+                      <div style={{ fontSize: '0.6em' }}>{line1}</div>
+                      <div style={{ fontSize: '0.6em' }}>{line2}</div>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
