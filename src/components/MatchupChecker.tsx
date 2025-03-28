@@ -188,7 +188,7 @@ const MatchupChecker: React.FC = () => {
             <tbody>
               {getSortedPlayerMoves().map((move, index) => (
                 <tr key={index}>
-                  <td>{formatPlayerMoveName(move)}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{formatPlayerMoveName(move)}</td>
                   <td>{move.startup}</td>
                   <td>{selectedEnemyMove ? renderResult(move.startup, selectedEnemyMove.guard, opponentStartup) : '-'}</td>
                 </tr>
@@ -205,14 +205,14 @@ const MatchupChecker: React.FC = () => {
               <tr>
                 <th></th>
                 {opponentData.moves.map((em, idx) => (
-                  <th key={idx}>{formatEnemyMoveName(em)}</th>
+                  <th key={idx} style={{ whiteSpace: 'nowrap' }}>{formatEnemyMoveName(em)}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {getSortedPlayerMoves().map((pm, idx) => (
                 <tr key={idx}>
-                  <td>{formatPlayerMoveName(pm)}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{formatPlayerMoveName(pm)}</td>
                   {opponentData.moves.map((em, j) => (
                     <td key={j}>{renderResult(pm.startup, em.guard, opponentStartup)}</td>
                   ))}
