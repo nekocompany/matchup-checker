@@ -1,8 +1,9 @@
 {
     "name": "Ken",
     "moves": [
-      { "id": "moveA", "name": "技A", "startup": 4 },
-      { "id": "moveB", "name": "技B", "startup": 5 },
-      { "id": "moveC", "name": "技C", "startup": 6 }
+      { "id": "moveA", "name": "立ち小P", "startup": 4 },
+      { "id": "moveB", "name": "立ち小K", "startup": 5 },
+      { "id": "moveC", "name": "下中P", "startup": 6 },
+      { "id": "moveD", "name": "下中K", "startup": 7 }
     ]
   }
