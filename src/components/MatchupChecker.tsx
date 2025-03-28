@@ -55,6 +55,10 @@ const splitNameSmart = (name: string): [string, string] => {
   return [name.slice(0, mid), name.slice(mid)];
 };
 
+
+
+
+
 const MatchupChecker: React.FC = () => {
   const [characterList, setCharacterList] = useState<{ [key: string]: { name_jp: string; url: string } }>({});
   const [player, setPlayer] = useState<string>('ken');
@@ -66,6 +70,9 @@ const MatchupChecker: React.FC = () => {
   const [viewMode, setViewMode] = useState<'detail' | 'matrix'>('detail');
   const [pinnedPlayerMoves, setPinnedPlayerMoves] = useState<string[]>([]);
   const [pinnedEnemyMoves, setPinnedEnemyMoves] = useState<string[]>([]);
+
+  const [hiddenPlayerMoves, setHiddenPlayerMoves] = useState<string[]>([]);
+  const [hiddenEnemyMoves, setHiddenEnemyMoves] = useState<string[]>([]);
 
   useEffect(() => {
     fetch('/data/character_list.json')
@@ -115,26 +122,28 @@ const MatchupChecker: React.FC = () => {
 
   const getSortedPlayerMoves = (): Move[] => {
     if (!playerData) return [];
-    const moves = [...playerData.moves];
-    return moves.sort((a, b) => {
-      const aPinned = pinnedPlayerMoves.includes(a.name);
-      const bPinned = pinnedPlayerMoves.includes(b.name);
-      if (aPinned && !bPinned) return -1;
-      if (!aPinned && bPinned) return 1;
-      return toValidStartup(a.startup) - toValidStartup(b.startup);
-    });
+    return playerData.moves
+      .filter((m) => !hiddenPlayerMoves.includes(m.name))
+      .sort((a, b) => {
+        const aPinned = pinnedPlayerMoves.includes(a.name);
+        const bPinned = pinnedPlayerMoves.includes(b.name);
+        if (aPinned && !bPinned) return -1;
+        if (!aPinned && bPinned) return 1;
+        return toValidStartup(a.startup) - toValidStartup(b.startup);
+      });
   };
 
   const getSortedEnemyMoves = (): EnemyMove[] => {
     if (!opponentData) return [];
-    const moves = [...opponentData.moves];
-    return moves.sort((a, b) => {
-      const aPinned = pinnedEnemyMoves.includes(a.name);
-      const bPinned = pinnedEnemyMoves.includes(b.name);
-      if (aPinned && !bPinned) return -1;
-      if (!aPinned && bPinned) return 1;
-      return toValidGuard(b.guard) - toValidGuard(a.guard);
-    });
+    return opponentData.moves
+      .filter((m) => !hiddenEnemyMoves.includes(m.name))
+      .sort((a, b) => {
+        const aPinned = pinnedEnemyMoves.includes(a.name);
+        const bPinned = pinnedEnemyMoves.includes(b.name);
+        if (aPinned && !bPinned) return -1;
+        if (!aPinned && bPinned) return 1;
+        return toValidGuard(b.guard) - toValidGuard(a.guard);
+      });
   };
 
   const togglePlayerPin = (name: string) => {
@@ -152,6 +161,19 @@ const MatchupChecker: React.FC = () => {
       const startup = parseInt((move.startup || '').trim());
       return !isNaN(startup) && startup === opponentStartup;
     });
+  };
+
+  // 表示非表示関連
+  const togglePlayerHide = (name: string) => {
+    setHiddenPlayerMoves(prev =>
+      prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
+    );
+  };
+  
+  const toggleEnemyHide = (name: string) => {
+    setHiddenEnemyMoves(prev =>
+      prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
+    );
   };
 
   return (
@@ -250,6 +272,13 @@ const MatchupChecker: React.FC = () => {
                         type="checkbox"
                         checked={pinnedEnemyMoves.includes(em.name)}
                         onChange={() => toggleEnemyPin(em.name)}
+                        title="この技をピン留めする"
+                      />
+                      <input
+                        type="checkbox"
+                        checked={hiddenEnemyMoves.includes(em.name)}
+                        onChange={() => toggleEnemyHide(em.name)}
+                        title="この技を非表示にする"
                       />
                     </th>
                   );
@@ -260,11 +289,18 @@ const MatchupChecker: React.FC = () => {
               {getSortedPlayerMoves().map((pm, idx) => (
                 <tr key={idx}>
                   <td style={{ whiteSpace: 'nowrap' }}>
-                    <input
-                      type="checkbox"
-                      checked={pinnedPlayerMoves.includes(pm.name)}
-                      onChange={() => togglePlayerPin(pm.name)}
-                    />
+                  <input
+                    type="checkbox"
+                    checked={pinnedPlayerMoves.includes(pm.name)}
+                    onChange={() => togglePlayerPin(pm.name)}
+                    title="この技をピン留めする"
+                  />
+                  <input
+                    type="checkbox"
+                    checked={hiddenPlayerMoves.includes(pm.name)}
+                    onChange={() => togglePlayerHide(pm.name)}
+                    title="この技を非表示にする"
+                  />
                     {formatPlayerMoveName(pm)}
                   </td>
                   {getSortedEnemyMoves().map((em, j) => (
