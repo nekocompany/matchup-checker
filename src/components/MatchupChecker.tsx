@@ -4,12 +4,14 @@ interface Move {
   id?: string;
   name: string;
   startup: string;
+  type?: string;
 }
 
 interface EnemyMove {
   id?: string;
   name: string;
   guard: string;
+  type?: string;
 }
 
 interface CharacterData {
@@ -50,7 +52,8 @@ const MatchupChecker: React.FC = () => {
     fetch(`/data/${player}_moves.json`)
       .then((res) => res.json())
       .then((data) => {
-        const sorted = data.sort((a: Move, b: Move) => toValidStartup(a.startup) - toValidStartup(b.startup));
+        const filtered = data.filter((m: Move) => m.type !== '共通システム');
+        const sorted = filtered.sort((a: Move, b: Move) => toValidStartup(a.startup) - toValidStartup(b.startup));
         setPlayerData({ name: player, moves: sorted });
       });
   }, [player]);
@@ -59,7 +62,8 @@ const MatchupChecker: React.FC = () => {
     fetch(`/data/${opponent}_moves.json`)
       .then((res) => res.json())
       .then((data) => {
-        const sorted = data.sort((a: EnemyMove, b: EnemyMove) => toValidGuard(b.guard) - toValidGuard(a.guard));
+        const filtered = data.filter((m: EnemyMove) => m.type !== '共通システム');
+        const sorted = filtered.sort((a: EnemyMove, b: EnemyMove) => toValidGuard(b.guard) - toValidGuard(a.guard));
         setOpponentData({ name: opponent, moves: sorted });
       });
   }, [opponent]);
