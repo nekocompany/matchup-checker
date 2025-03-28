@@ -1,15 +1,15 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface Move {
-  id: string;
+  id?: string;
   name: string;
-  startup: number;
+  startup: string;
 }
 
 interface EnemyMove {
-  id: string;
+  id?: string;
   name: string;
-  guardAdvantage: number;
+  guard: string;
 }
 
 interface CharacterData {
@@ -22,148 +22,155 @@ interface EnemyData {
   moves: EnemyMove[];
 }
 
+const toValidStartup = (s: string): number => {
+  return /^\d+$/.test(s.trim()) ? parseInt(s.trim()) : Number.MAX_SAFE_INTEGER;
+};
+
+const toValidGuard = (s: string): number => {
+  return /^[-+]?\d+$/.test(s.trim()) ? parseInt(s.trim()) : Number.MIN_SAFE_INTEGER;
+};
+
 const MatchupChecker: React.FC = () => {
-  const [kenData, setKenData] = useState<CharacterData | null>(null);
-  const [ryuData, setRyuData] = useState<EnemyData | null>(null);
+  const [characterList, setCharacterList] = useState<{ [key: string]: { name_jp: string; url: string } }>({});
+  const [player, setPlayer] = useState<string>('ken');
+  const [opponent, setOpponent] = useState<string>('ryu');
+  const [playerData, setPlayerData] = useState<CharacterData | null>(null);
+  const [opponentData, setOpponentData] = useState<EnemyData | null>(null);
   const [selectedEnemyMove, setSelectedEnemyMove] = useState<EnemyMove | null>(null);
   const [opponentStartup, setOpponentStartup] = useState<number>(4);
   const [viewMode, setViewMode] = useState<'detail' | 'matrix'>('detail');
 
   useEffect(() => {
-    fetch('/data/ken.json').then(res => res.json()).then(setKenData);
-    fetch('/data/ryu.json').then(res => res.json()).then(setRyuData);
+    fetch('/data/character_list.json')
+      .then((res) => res.json())
+      .then((data) => setCharacterList(data));
   }, []);
 
-  const renderResult = (startup: number, advantage: number, opponent: number) => {
-    const effectiveFrame = opponent - advantage;
-    if (startup < effectiveFrame) return '〇';
-    if (startup === effectiveFrame) return '△';
+  useEffect(() => {
+    fetch(`/data/${player}_moves.json`)
+      .then((res) => res.json())
+      .then((data) => {
+        const sorted = data.sort((a: Move, b: Move) => toValidStartup(a.startup) - toValidStartup(b.startup));
+        setPlayerData({ name: player, moves: sorted });
+      });
+  }, [player]);
+
+  useEffect(() => {
+    fetch(`/data/${opponent}_moves.json`)
+      .then((res) => res.json())
+      .then((data) => {
+        const sorted = data.sort((a: EnemyMove, b: EnemyMove) => toValidGuard(b.guard) - toValidGuard(a.guard));
+        setOpponentData({ name: opponent, moves: sorted });
+      });
+  }, [opponent]);
+
+  const renderResult = (startup: string, advantage: string, opponent: number): string => {
+    const s = parseInt(startup);
+    const a = parseInt(advantage);
+    if (isNaN(s) || isNaN(a)) return '-';
+    const diff = opponent - a;
+    if (s < diff) return '〇';
+    if (s === diff) return '△';
     return '×';
+  };
+
+  const formatEnemyMoveName = (move: EnemyMove) => {
+    const guardValue = move.guard?.trim();
+    if (guardValue && /^[-+]?\d+$/.test(guardValue)) {
+      return `${move.name} (${guardValue})`;
+    }
+    return move.name;
+  };
+
+  const formatPlayerMoveName = (move: Move) => {
+    const startupValue = move.startup?.trim();
+    if (startupValue && /^\d+$/.test(startupValue)) {
+      return `${move.name} (${startupValue})`;
+    }
+    return move.name;
   };
 
   return (
     <div>
-      <h2>Advantage Moves Calculator - Prototype</h2>
+      <h2>Matchup Checker</h2>
 
-      <div style={{ marginBottom: '1em' }}>
-        <span>表示モード：</span>
-        <label style={{ marginRight: '1em' }}>
-          <input
-            type="radio"
-            name="viewMode"
-            value="detail"
-            checked={viewMode === 'detail'}
-            onChange={() => setViewMode('detail')}
-          />
-          詳細判定（1技ずつ）
+      <div>
+        <label>自キャラ:
+          <select value={player} onChange={(e) => setPlayer(e.target.value)}>
+            {Object.keys(characterList).map((key) => (
+              <option key={key} value={key}>{key}</option>
+            ))}
+          </select>
         </label>
+
+        <label>相手キャラ:
+          <select value={opponent} onChange={(e) => setOpponent(e.target.value)}>
+            {Object.keys(characterList).map((key) => (
+              <option key={key} value={key}>{key}</option>
+            ))}
+          </select>
+        </label>
+
         <label>
-          <input
-            type="radio"
-            name="viewMode"
-            value="matrix"
-            checked={viewMode === 'matrix'}
-            onChange={() => setViewMode('matrix')}
-          />
-          判定マトリクス（全体表）
+          表示モード:
+          <select value={viewMode} onChange={(e) => setViewMode(e.target.value as 'detail' | 'matrix')}>
+            <option value="detail">個別技</option>
+            <option value="matrix">判定マトリクス</option>
+          </select>
+        </label>
+
+        <label>
+          相手の次の技の発生:
+          <input type="number" value={opponentStartup} onChange={(e) => setOpponentStartup(parseInt(e.target.value))} />F
         </label>
       </div>
 
-      <div style={{ marginBottom: '1em' }}>
-        <label>
-          {ryuData?.name ?? '相手キャラ'}が、{kenData?.name ?? 'こちら'}がガード後に振る技の発生フレーム:
-        </label>
-        <select
-          value={opponentStartup}
-          onChange={(e) => setOpponentStartup(parseInt(e.target.value))}
-        >
-          {[3, 4, 5, 6, 7, 8, 9, 10].map(f => (
-            <option key={f} value={f}>{f}f</option>
-          ))}
-        </select>
-      </div>
-
-      {viewMode === 'detail' && (
-        <>
-          <div style={{ marginBottom: '1em' }}>
-            <label>{ryuData?.name ?? '相手キャラ'}の技を選択: </label>
-            <select
-              onChange={(e) => {
-                const move = ryuData?.moves.find(m => m.id === e.target.value);
-                setSelectedEnemyMove(move || null);
-              }}
-            >
-              <option value="">-- 選択してください --</option>
-              {ryuData?.moves.map(move => (
-                <option key={move.id} value={move.id}>
-                  {move.name}（ガード{move.guardAdvantage >= 0 ? '+' : ''}{move.guardAdvantage}）
-                </option>
+      {viewMode === 'detail' && opponentData && (
+        <div>
+          <label>
+            相手の技を選択:
+            <select onChange={(e) => setSelectedEnemyMove(opponentData.moves.find((m) => m.name === e.target.value) || null)}>
+              <option value="">--</option>
+              {opponentData.moves.map((move, index) => (
+                <option key={index} value={move.name}>{formatEnemyMoveName(move)}</option>
               ))}
             </select>
-            <p style={{ fontSize: '0.9em', marginTop: '0.3em', color: '#555' }}>
-              ※ ガード値の意味：マイナス → {ryuData?.name ?? '相手キャラ'}が不利 ／ プラス → 有利
-            </p>
-          </div>
+          </label>
 
-          {selectedEnemyMove && kenData && (
-            <div>
-              <h3>■ 対{ryuData?.name} {selectedEnemyMove.name}（ガード{selectedEnemyMove.guardAdvantage >= 0 ? '+' : ''}{selectedEnemyMove.guardAdvantage}）</h3>
-              <p>
-                → 相手が<strong>{selectedEnemyMove.name}</strong>後に <strong>{opponentStartup}f技</strong> を振ったと仮定して判定
-              </p>
-
-              <table style={{ borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={{ borderBottom: '1px solid #ccc', paddingRight: '1em' }}>ケンの技</th>
-                    <th style={{ borderBottom: '1px solid #ccc', paddingRight: '1em' }}>発生</th>
-                    <th style={{ borderBottom: '1px solid #ccc' }}>判定</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {kenData.moves.map(move => (
-                    <tr key={move.id}>
-                      <td style={{ paddingRight: '1em' }}>{move.name}</td>
-                      <td style={{ paddingRight: '1em' }}>{move.startup}f</td>
-                      <td>{renderResult(move.startup, selectedEnemyMove.guardAdvantage, opponentStartup)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
+          <table border={1}>
+            <thead>
+              <tr><th>技名</th><th>発生</th><th>判定</th></tr>
+            </thead>
+            <tbody>
+              {playerData?.moves.map((move, index) => (
+                <tr key={index}>
+                  <td>{formatPlayerMoveName(move)}</td>
+                  <td>{move.startup}</td>
+                  <td>{selectedEnemyMove ? renderResult(move.startup, selectedEnemyMove.guard, opponentStartup) : '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      {viewMode === 'matrix' && kenData && ryuData && (
+      {viewMode === 'matrix' && playerData && opponentData && (
         <div>
-          <h3>判定マトリクス（リュウの技 × ケンの反撃技）</h3>
-          <p>
-            → 相手（リュウ）が各技をガードさせた後に <strong>{opponentStartup}f技</strong> を振ったと仮定して判定
-          </p>
-          <p style={{ fontSize: '0.9em', color: '#555' }}>
-            ※ 横軸：ケンが振る技 ／ 縦軸：リュウの技（ガード時の有利フレーム）<br />
-            ※ ガード値：マイナスはリュウが不利、プラスはリュウが有利
-          </p>
-          <table style={{ borderCollapse: 'collapse' }}>
+          <table border={1}>
             <thead>
               <tr>
-                <th style={{ borderBottom: '1px solid #ccc', paddingRight: '1em' }}>リュウの技</th>
-                {kenData.moves.map(kenMove => (
-                  <th key={kenMove.id} style={{ borderBottom: '1px solid #ccc', paddingRight: '1em' }}>
-                    {kenMove.name} ({kenMove.startup}f)
-                  </th>
+                <th></th>
+                {opponentData.moves.map((em, idx) => (
+                  <th key={idx}>{formatEnemyMoveName(em)}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {ryuData.moves.map(enemyMove => (
-                <tr key={enemyMove.id}>
-                  <td style={{ paddingRight: '1em' }}>{enemyMove.name}（ガ{enemyMove.guardAdvantage >= 0 ? '+' : ''}{enemyMove.guardAdvantage}）</td>
-                  {kenData.moves.map(kenMove => (
-                    <td key={kenMove.id} style={{ textAlign: 'center' }}>
-                      {renderResult(kenMove.startup, enemyMove.guardAdvantage, opponentStartup)}
-                    </td>
+              {playerData.moves.map((pm, idx) => (
+                <tr key={idx}>
+                  <td>{formatPlayerMoveName(pm)}</td>
+                  {opponentData.moves.map((em, j) => (
+                    <td key={j}>{renderResult(pm.startup, em.guard, opponentStartup)}</td>
                   ))}
                 </tr>
               ))}
