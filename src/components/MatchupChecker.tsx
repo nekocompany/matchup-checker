@@ -11,6 +11,7 @@ interface EnemyMove {
   id?: string;
   name: string;
   guard: string;
+  startup?: string; // ★ 追加
   type?: string;
 }
 
@@ -63,7 +64,8 @@ const MatchupChecker: React.FC = () => {
   const [selectedEnemyMove, setSelectedEnemyMove] = useState<EnemyMove | null>(null);
   const [opponentStartup, setOpponentStartup] = useState<number>(4);
   const [viewMode, setViewMode] = useState<'detail' | 'matrix'>('detail');
-  const [pinnedMoves, setPinnedMoves] = useState<string[]>([]);
+  const [pinnedPlayerMoves, setPinnedPlayerMoves] = useState<string[]>([]);
+  const [pinnedEnemyMoves, setPinnedEnemyMoves] = useState<string[]>([]);
 
   useEffect(() => {
     fetch('/data/character_list.json')
@@ -78,7 +80,7 @@ const MatchupChecker: React.FC = () => {
         const filtered = data.filter((m: Move) => m.type !== '共通システム');
         const sorted = filtered.sort((a: Move, b: Move) => toValidStartup(a.startup) - toValidStartup(b.startup));
         setPlayerData({ name: player, moves: sorted });
-        setPinnedMoves([]);
+        setPinnedPlayerMoves([]);
       });
   }, [player]);
 
@@ -89,6 +91,7 @@ const MatchupChecker: React.FC = () => {
         const filtered = data.filter((m: EnemyMove) => m.type !== '共通システム');
         const sorted = filtered.sort((a: EnemyMove, b: EnemyMove) => toValidGuard(b.guard) - toValidGuard(a.guard));
         setOpponentData({ name: opponent, moves: sorted });
+        setPinnedEnemyMoves([]);
       });
   }, [opponent]);
 
@@ -114,18 +117,41 @@ const MatchupChecker: React.FC = () => {
     if (!playerData) return [];
     const moves = [...playerData.moves];
     return moves.sort((a, b) => {
-      const aPinned = pinnedMoves.includes(a.name);
-      const bPinned = pinnedMoves.includes(b.name);
+      const aPinned = pinnedPlayerMoves.includes(a.name);
+      const bPinned = pinnedPlayerMoves.includes(b.name);
       if (aPinned && !bPinned) return -1;
       if (!aPinned && bPinned) return 1;
       return toValidStartup(a.startup) - toValidStartup(b.startup);
     });
   };
 
-  const togglePin = (moveName: string) => {
-    setPinnedMoves((prev) =>
-      prev.includes(moveName) ? prev.filter((name) => name !== moveName) : [...prev, moveName]
-    );
+  const getSortedEnemyMoves = (): EnemyMove[] => {
+    if (!opponentData) return [];
+    const moves = [...opponentData.moves];
+    return moves.sort((a, b) => {
+      const aPinned = pinnedEnemyMoves.includes(a.name);
+      const bPinned = pinnedEnemyMoves.includes(b.name);
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+      return toValidGuard(b.guard) - toValidGuard(a.guard);
+    });
+  };
+
+  const togglePlayerPin = (name: string) => {
+    setPinnedPlayerMoves(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
+  };
+
+  const toggleEnemyPin = (name: string) => {
+    setPinnedEnemyMoves(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
+  };
+
+  // ★ startupが一致する技を抽出
+  const getEnemyMovesMatchingStartup = (): EnemyMove[] => {
+    if (!opponentData) return [];
+    return opponentData.moves.filter((move) => {
+      const startup = parseInt((move.startup || '').trim());
+      return !isNaN(startup) && startup === opponentStartup;
+    });
   };
 
   return (
@@ -163,23 +189,18 @@ const MatchupChecker: React.FC = () => {
         </label>
       </div>
 
-      {viewMode === 'matrix' && playerData && (
-        <div>
-          <label>
-            表の上に固定する技:
-            {playerData.moves.map((move, index) => (
-              <div key={index}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={pinnedMoves.includes(move.name)}
-                    onChange={() => togglePin(move.name)}
-                  />
-                  {formatPlayerMoveName(move)}
-                </label>
-              </div>
+      {/* ★ startup一致技の表示 */}
+      {opponentData && (
+        <div style={{ marginTop: '1em' }}>
+          <strong>相手の技で『発生{opponentStartup}F』になるもの:</strong>
+          <ul>
+            {getEnemyMovesMatchingStartup().map((move, index) => (
+              <li key={index}>{move.name}（ガード時{move.guard}）</li>
             ))}
-          </label>
+            {getEnemyMovesMatchingStartup().length === 0 && (
+              <li>該当する技は見つかりませんでした。</li>
+            )}
+          </ul>
         </div>
       )}
 
@@ -218,13 +239,18 @@ const MatchupChecker: React.FC = () => {
             <thead>
               <tr>
                 <th></th>
-                {opponentData.moves.map((em, idx) => {
+                {getSortedEnemyMoves().map((em, idx) => {
                   const [line1, line2] = splitNameSmart(em.name);
                   return (
                     <th key={idx} style={{ whiteSpace: 'nowrap' }}>
                       <div>{extractGuardValue(em)}</div>
                       <div style={{ fontSize: '0.6em' }}>{line1}</div>
                       <div style={{ fontSize: '0.6em' }}>{line2}</div>
+                      <input
+                        type="checkbox"
+                        checked={pinnedEnemyMoves.includes(em.name)}
+                        onChange={() => toggleEnemyPin(em.name)}
+                      />
                     </th>
                   );
                 })}
@@ -233,8 +259,15 @@ const MatchupChecker: React.FC = () => {
             <tbody>
               {getSortedPlayerMoves().map((pm, idx) => (
                 <tr key={idx}>
-                  <td style={{ whiteSpace: 'nowrap' }}>{formatPlayerMoveName(pm)}</td>
-                  {opponentData.moves.map((em, j) => (
+                  <td style={{ whiteSpace: 'nowrap' }}>
+                    <input
+                      type="checkbox"
+                      checked={pinnedPlayerMoves.includes(pm.name)}
+                      onChange={() => togglePlayerPin(pm.name)}
+                    />
+                    {formatPlayerMoveName(pm)}
+                  </td>
+                  {getSortedEnemyMoves().map((em, j) => (
                     <td key={j}>{renderResult(pm.startup, em.guard, opponentStartup)}</td>
                   ))}
                 </tr>
