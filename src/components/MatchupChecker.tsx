@@ -218,8 +218,39 @@ const MatchupChecker: React.FC = () => {
           ダークモード切替
         </button>
       </div>
+      <div className="mb-6">
+    <h3 className="text-lg font-semibold mb-2">発生 {opponentStartup}f の相手技一覧</h3>
+    <ul className="list-disc pl-5 text-sm">
+      {getEnemyMovesMatchingStartup().length > 0 ? (
+        getEnemyMovesMatchingStartup().map((move, idx) => {
+          const [main, sub] = splitNameSmart(move.name);
+          const isThrow = move.attribute === '投';
+          const startup = move.startup?.trim();
+          const hasValidStartup = /^\d+$/.test(startup || '');
+          const suffix = isThrow
+            ? '（投）'
+            : move.guard?.trim()
+            ? `（ガード時${move.guard.trim()}）`
+            : '（-）';
+
+          return (
+            <li key={idx}>
+              {main}
+              {sub && ` ${sub}`} {suffix}
+              {hasValidStartup && ` (${startup})`}
+            </li>
+          );
+        })
+      ) : (
+        <li>該当する技は見つかりませんでした。</li>
+      )}
+    </ul>
+  </div>
+
+      
 
       {viewMode === 'detail' && opponentData && (
+        
         <div className="overflow-x-auto">
           <label className="block mb-2 text-sm">
             相手の技を選択:
