@@ -5,7 +5,7 @@ interface Move {
   name: string;
   startup: string;
   type?: string;
-  attribute?: string; // ← 追加
+  attribute?: string;
 }
 
 interface EnemyMove {
@@ -14,7 +14,7 @@ interface EnemyMove {
   guard: string;
   startup?: string;
   type?: string;
-  attribute?: string; // ← これを追加
+  attribute?: string;
 }
 
 interface CharacterData {
@@ -36,33 +36,25 @@ const toValidGuard = (s: string): number => {
 };
 
 const extractGuardValue = (move: EnemyMove): string => {
-  if (move.attribute === '投') return '（投）'; // 投げ技なら固定表記
+  if (move.attribute === '投') return '（投）';
   const guard = move.guard?.trim();
-  if (!guard) return '（-）'; // guardが空欄なら「（-）」と表示
+  if (!guard) return '（-）';
   const match = guard.match(/^[-+]?\d+$/);
-  return match ? `（ガード時${match[0]}）` : '（-）'; // 整数として妥当なら表示、そうでなければ「（-）」
+  return match ? `（ガード時${match[0]}）` : '（-）';
 };
 
 const splitNameSmart = (name: string): [string, string] => {
   const bracketMatch = name.match(/^([\[【].*?[\]】])\s*(.*)/);
   if (bracketMatch) return [bracketMatch[1], bracketMatch[2]];
-
   const parenMatch = name.match(/^(.*?)(\s*\(.*\))$/);
   if (parenMatch) return [parenMatch[1], parenMatch[2]];
-
   const spaceIndex = name.indexOf(' ');
   if (spaceIndex > 0) return [name.slice(0, spaceIndex), name.slice(spaceIndex + 1)];
-
   const zspaceIndex = name.indexOf('　');
   if (zspaceIndex > 0) return [name.slice(0, zspaceIndex), name.slice(zspaceIndex + 1)];
-
   const mid = Math.floor(name.length / 2);
   return [name.slice(0, mid), name.slice(mid)];
 };
-
-
-
-
 
 const MatchupChecker: React.FC = () => {
   const [characterList, setCharacterList] = useState<{ [key: string]: { name_jp: string; url: string } }>({});
@@ -75,10 +67,9 @@ const MatchupChecker: React.FC = () => {
   const [viewMode, setViewMode] = useState<'detail' | 'matrix'>('detail');
   const [pinnedPlayerMoves, setPinnedPlayerMoves] = useState<string[]>([]);
   const [pinnedEnemyMoves, setPinnedEnemyMoves] = useState<string[]>([]);
-
-  // 非表示関連
   const [hiddenPlayerMoves, setHiddenPlayerMoves] = useState<string[]>([]);
   const [hiddenEnemyMoves, setHiddenEnemyMoves] = useState<string[]>([]);
+
   const resetHiddenPlayerMoves = () => setHiddenPlayerMoves([]);
   const resetHiddenEnemyMoves = () => setHiddenEnemyMoves([]);
 
@@ -122,10 +113,8 @@ const MatchupChecker: React.FC = () => {
 
   const formatPlayerMoveName = (move: Move) => {
     const startupValue = move.startup?.trim();
-    const isThrow = move.attribute === '投'; // ★投げ判定
-  
+    const isThrow = move.attribute === '投';
     const baseName = isThrow ? `${move.name} (投)` : move.name;
-  
     if (startupValue && /^\d+$/.test(startupValue)) {
       return `${baseName} (${startupValue})`;
     }
@@ -166,7 +155,6 @@ const MatchupChecker: React.FC = () => {
     setPinnedEnemyMoves(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
   };
 
-  // ★ startupが一致する技を抽出
   const getEnemyMovesMatchingStartup = (): EnemyMove[] => {
     if (!opponentData) return [];
     return opponentData.moves.filter((move) => {
@@ -175,13 +163,12 @@ const MatchupChecker: React.FC = () => {
     });
   };
 
-  // 表示非表示関連
   const togglePlayerHide = (name: string) => {
     setHiddenPlayerMoves(prev =>
       prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
     );
   };
-  
+
   const toggleEnemyHide = (name: string) => {
     setHiddenEnemyMoves(prev =>
       prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
@@ -189,60 +176,54 @@ const MatchupChecker: React.FC = () => {
   };
 
   return (
-    <div>
-      <h2>Matchup Checker</h2>
+    <div className="p-4 text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-900 min-h-screen">
+      <h2 className="text-2xl font-bold mb-4">Matchup Checker</h2>
 
-      <div>
-        <label>自キャラ:
-          <select value={player} onChange={(e) => setPlayer(e.target.value)}>
+      <div className="flex flex-wrap gap-4 items-end mb-6">
+        <label className="flex flex-col text-sm">
+          自キャラ
+          <select value={player} onChange={(e) => setPlayer(e.target.value)} className="mt-1 p-1 rounded bg-white dark:bg-gray-700">
             {Object.keys(characterList).map((key) => (
               <option key={key} value={key}>{key}</option>
             ))}
           </select>
         </label>
 
-        <label>相手キャラ:
-          <select value={opponent} onChange={(e) => setOpponent(e.target.value)}>
+        <label className="flex flex-col text-sm">
+          相手キャラ
+          <select value={opponent} onChange={(e) => setOpponent(e.target.value)} className="mt-1 p-1 rounded bg-white dark:bg-gray-700">
             {Object.keys(characterList).map((key) => (
               <option key={key} value={key}>{key}</option>
             ))}
           </select>
         </label>
 
-        <label>
-          表示モード:
-          <select value={viewMode} onChange={(e) => setViewMode(e.target.value as 'detail' | 'matrix')}>
+        <label className="flex flex-col text-sm">
+          表示モード
+          <select value={viewMode} onChange={(e) => setViewMode(e.target.value as 'detail' | 'matrix')} className="mt-1 p-1 rounded bg-white dark:bg-gray-700">
             <option value="detail">個別技</option>
             <option value="matrix">判定マトリクス</option>
           </select>
         </label>
 
-        <label>
-          相手の次の技の発生:
-          <input type="number" value={opponentStartup} onChange={(e) => setOpponentStartup(parseInt(e.target.value))} />F
+        <label className="flex flex-col text-sm">
+          相手の次の技の発生
+          <input type="number" value={opponentStartup} onChange={(e) => setOpponentStartup(parseInt(e.target.value))} className="mt-1 p-1 rounded bg-white dark:bg-gray-700 w-24" />
         </label>
+
+        <button
+          onClick={() => document.documentElement.classList.toggle('dark')}
+          className="ml-auto p-2 text-sm border rounded bg-gray-200 dark:bg-gray-600 dark:text-white"
+        >
+          ダークモード切替
+        </button>
       </div>
 
-      {/* ★ startup一致技の表示 */}
-      {opponentData && (
-        <div style={{ marginTop: '1em' }}>
-          <strong>相手の技で『発生{opponentStartup}F』になるもの:</strong>
-          <ul>
-            {getEnemyMovesMatchingStartup().map((move, index) => (
-              <li key={index}>{move.name}{extractGuardValue(move)}</li>
-            ))}
-            {getEnemyMovesMatchingStartup().length === 0 && (
-              <li>該当する技は見つかりませんでした。</li>
-            )}
-          </ul>
-        </div>
-      )}
-
       {viewMode === 'detail' && opponentData && (
-        <div>
-          <label>
+        <div className="overflow-x-auto">
+          <label className="block mb-2 text-sm">
             相手の技を選択:
-            <select onChange={(e) => setSelectedEnemyMove(opponentData.moves.find((m) => m.name === e.target.value) || null)}>
+            <select onChange={(e) => setSelectedEnemyMove(opponentData.moves.find((m) => m.name === e.target.value) || null)} className="ml-2 p-1 rounded bg-white dark:bg-gray-700">
               <option value="">--</option>
               {opponentData.moves.map((move, index) => (
                 <option key={index} value={move.name}>{move.name}</option>
@@ -250,16 +231,20 @@ const MatchupChecker: React.FC = () => {
             </select>
           </label>
 
-          <table border={1}>
+          <table className="table-auto w-full border-collapse border border-gray-400 dark:border-gray-600">
             <thead>
-              <tr><th>技名</th><th>発生</th><th>判定</th></tr>
+              <tr className="bg-gray-200 dark:bg-gray-700">
+                <th className="border border-gray-400 dark:border-gray-600 px-2 py-1">技名</th>
+                <th className="border border-gray-400 dark:border-gray-600 px-2 py-1">発生</th>
+                <th className="border border-gray-400 dark:border-gray-600 px-2 py-1">判定</th>
+              </tr>
             </thead>
             <tbody>
               {getSortedPlayerMoves().map((move, index) => (
-                <tr key={index}>
-                  <td style={{ whiteSpace: 'nowrap' }}>{formatPlayerMoveName(move)}</td>
-                  <td>{move.startup}</td>
-                  <td>{selectedEnemyMove ? renderResult(move.startup, selectedEnemyMove.guard, opponentStartup) : '-'}</td>
+                <tr key={index} className="even:bg-gray-50 dark:even:bg-gray-800">
+                  <td className="border border-gray-400 dark:border-gray-600 px-2 py-1 whitespace-nowrap">{formatPlayerMoveName(move)}</td>
+                  <td className="border border-gray-400 dark:border-gray-600 px-2 py-1">{move.startup}</td>
+                  <td className="border border-gray-400 dark:border-gray-600 px-2 py-1">{selectedEnemyMove ? renderResult(move.startup, selectedEnemyMove.guard, opponentStartup) : '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -268,35 +253,18 @@ const MatchupChecker: React.FC = () => {
       )}
 
       {viewMode === 'matrix' && playerData && opponentData && (
-            <div>
-              {(hiddenPlayerMoves.length > 0 || hiddenEnemyMoves.length > 0) && (
-              <div style={{ color: '#0497d1', marginTop: '0.5em' }}>
-                ※ 非表示中の技があります（下部に表示）
-              </div>
-            )}
-          <table border={1}>
+        <div className="overflow-x-auto">
+          <table className="table-auto border-collapse w-full border border-gray-400 dark:border-gray-600">
             <thead>
-              <tr>
-                <th></th>
+              <tr className="bg-gray-200 dark:bg-gray-700">
+                <th className="border border-gray-400 dark:border-gray-600 px-2 py-1"></th>
                 {getSortedEnemyMoves().map((em, idx) => {
                   const [line1, line2] = splitNameSmart(em.name);
                   return (
-                    <th key={idx} style={{ whiteSpace: 'nowrap' }}>
+                    <th key={idx} className="border border-gray-400 dark:border-gray-600 px-2 py-1 text-xs whitespace-nowrap">
                       <div>{extractGuardValue(em)}</div>
-                      <div style={{ fontSize: '0.6em' }}>{line1}</div>
-                      <div style={{ fontSize: '0.6em' }}>{line2}</div>
-                      <input
-                        type="checkbox"
-                        checked={pinnedEnemyMoves.includes(em.name)}
-                        onChange={() => toggleEnemyPin(em.name)}
-                        title="この技をピン留めする"
-                      />
-                      <input
-                        type="checkbox"
-                        checked={hiddenEnemyMoves.includes(em.name)}
-                        onChange={() => toggleEnemyHide(em.name)}
-                        title="この技を非表示にする"
-                      />
+                      <div>{line1}</div>
+                      <div>{line2}</div>
                     </th>
                   );
                 })}
@@ -304,75 +272,22 @@ const MatchupChecker: React.FC = () => {
             </thead>
             <tbody>
               {getSortedPlayerMoves().map((pm, idx) => (
-                <tr key={idx}>
-                  <td style={{ whiteSpace: 'nowrap' }}>
-                  <input
-                    type="checkbox"
-                    checked={pinnedPlayerMoves.includes(pm.name)}
-                    onChange={() => togglePlayerPin(pm.name)}
-                    title="この技をピン留めする"
-                  />
-                  <input
-                    type="checkbox"
-                    checked={hiddenPlayerMoves.includes(pm.name)}
-                    onChange={() => togglePlayerHide(pm.name)}
-                    title="この技を非表示にする"
-                  />
+                <tr key={idx} className="even:bg-gray-50 dark:even:bg-gray-800">
+                  <td className="border border-gray-400 dark:border-gray-600 px-2 py-1 whitespace-nowrap text-sm font-medium">
                     {formatPlayerMoveName(pm)}
                   </td>
                   {getSortedEnemyMoves().map((em, j) => (
-                    <td key={j}>{renderResult(pm.startup, em.guard, opponentStartup)}</td>
+                    <td key={j} className="border border-gray-400 dark:border-gray-600 px-2 py-1 text-center">
+                      {renderResult(pm.startup, em.guard, opponentStartup)}
+                    </td>
                   ))}
                 </tr>
               ))}
             </tbody>
           </table>
-
-           {/* 表示非表示 */}
-        {(hiddenPlayerMoves.length > 0 || hiddenEnemyMoves.length > 0) && (
-          <div style={{ marginTop: '1em' }}>
-            {hiddenPlayerMoves.length > 0 && (
-              <div>
-                <h4>非表示中の自キャラ技（{hiddenPlayerMoves.length}）</h4>
-                <button onClick={resetHiddenPlayerMoves}>すべて再表示</button>
-                <ul>
-                  {playerData.moves
-                    .filter((m) => hiddenPlayerMoves.includes(m.name))
-                    .map((move) => (
-                      <li key={move.name}>
-                        {formatPlayerMoveName(move)}{' '}
-                        <button onClick={() => togglePlayerHide(move.name)}>再表示</button>
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            )}
-
-            {hiddenEnemyMoves.length > 0 && (
-              <div>
-                <h4>非表示中の相手技（{hiddenEnemyMoves.length}）</h4>
-                <button onClick={resetHiddenEnemyMoves}>すべて再表示</button>
-                <ul>
-                  {opponentData.moves
-                    .filter((m) => hiddenEnemyMoves.includes(m.name))
-                    .map((move) => (
-                      <li key={move.name}>
-                        {move.name}（ガード時{move.guard}）{' '}
-                        <button onClick={() => toggleEnemyHide(move.name)}>再表示</button>
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-
-          
         </div>
       )}
-
     </div>
-
   );
 };
 
