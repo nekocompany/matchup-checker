@@ -283,41 +283,98 @@ const MatchupChecker: React.FC = () => {
         </div>
       )}
 
-      {viewMode === 'matrix' && playerData && opponentData && (
-        <div className="overflow-x-auto">
-          <table className="table-auto border-collapse w-full border border-gray-400 dark:border-gray-600">
-            <thead>
-              <tr className="bg-gray-200 dark:bg-gray-700">
-                <th className="border border-gray-400 dark:border-gray-600 px-2 py-1"></th>
-                {getSortedEnemyMoves().map((em, idx) => {
-                  const [line1, line2] = splitNameSmart(em.name);
-                  return (
-                    <th key={idx} className="border border-gray-400 dark:border-gray-600 px-2 py-1 text-xs whitespace-nowrap">
-                      <div>{extractGuardValue(em)}</div>
-                      <div>{line1}</div>
-                      <div>{line2}</div>
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {getSortedPlayerMoves().map((pm, idx) => (
-                <tr key={idx} className="even:bg-gray-50 dark:even:bg-gray-800">
-                  <td className="border border-gray-400 dark:border-gray-600 px-2 py-1 whitespace-nowrap text-sm font-medium">
-                    {formatPlayerMoveName(pm)}
-                  </td>
-                  {getSortedEnemyMoves().map((em, j) => (
-                    <td key={j} className="border border-gray-400 dark:border-gray-600 px-2 py-1 text-center">
-                      {renderResult(pm.startup, em.guard, opponentStartup)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+{viewMode === 'matrix' && playerData && opponentData && (
+    <div className="overflow-x-auto">
+
+      {/* 非表示警告 */}
+      {(hiddenPlayerMoves.length > 0 || hiddenEnemyMoves.length > 0) && (
+        <div className="mb-4 text-sm text-yellow-700 bg-gray-50 p-2 rounded">
+          非表示の技があります
         </div>
       )}
+
+      {/* 非表示技の一覧と再表示ボタン */}
+      {hiddenPlayerMoves.length > 0 && (
+        <div className="mb-2 text-sm">
+          <div className="font-semibold">非表示中の技（自キャラ）:</div>
+          <ul className="list-disc pl-5">
+            {hiddenPlayerMoves.map((name, i) => (
+              <li key={i}>
+                {name} <button onClick={() => togglePlayerHide(name)} className="ml-2 text-blue-600 underline">再表示</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {hiddenEnemyMoves.length > 0 && (
+        <div className="mb-4 text-sm">
+          <div className="font-semibold">非表示中の技（相手キャラ）:</div>
+          <ul className="list-disc pl-5">
+            {hiddenEnemyMoves.map((name, i) => (
+              <li key={i}>
+                {name} <button onClick={() => toggleEnemyHide(name)} className="ml-2 text-blue-600 underline">再表示</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* マトリクステーブル */}
+      <table className="table-auto border-collapse w-full border border-gray-400 dark:border-gray-600">
+        <thead>
+          <tr className="bg-gray-200 dark:bg-gray-700">
+            <th className="border px-2 py-1">技名</th>
+            {getSortedEnemyMoves().map((em, idx) => {
+              const [line1, line2] = splitNameSmart(em.name);
+              return (
+                <th key={idx} className="border px-2 py-1 text-xs">
+                  <div>{extractGuardValue(em)}</div>
+                  <div>{line1}</div>
+                  <div>{line2}</div>
+                  <div className="flex gap-1 justify-center mt-1 text-xs">
+                    <label>
+                      <input type="checkbox" checked={pinnedEnemyMoves.includes(em.name)} onChange={() => toggleEnemyPin(em.name)} />
+                      ☑
+                    </label>
+                    <label>
+                      <input type="checkbox" checked={hiddenEnemyMoves.includes(em.name)} onChange={() => toggleEnemyHide(em.name)} />
+                      ×
+                    </label>
+                  </div>
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {getSortedPlayerMoves().map((pm, idx) => (
+            <tr key={idx} className="even:bg-gray-50 dark:even:bg-gray-800">
+              <td className="border px-2 py-1 text-sm whitespace-nowrap">
+                {formatPlayerMoveName(pm)}
+                <div className="flex gap-2 mt-1 text-xs">
+                  <label>
+                    <input type="checkbox" checked={pinnedPlayerMoves.includes(pm.name)} onChange={() => togglePlayerPin(pm.name)} />
+                    ピン
+                  </label>
+                  <label>
+                    <input type="checkbox" checked={hiddenPlayerMoves.includes(pm.name)} onChange={() => togglePlayerHide(pm.name)} />
+                    非表示
+                  </label>
+                </div>
+              </td>
+              {getSortedEnemyMoves().map((em, j) => (
+                <td key={j} className="border px-2 py-1 text-center">
+                  {renderResult(pm.startup, em.guard, opponentStartup)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+
     </div>
   );
 };
