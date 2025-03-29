@@ -35,12 +35,25 @@ const toValidGuard = (s: string): number => {
   return /^[-+]?\d+$/.test(s.trim()) ? parseInt(s.trim()) : Number.MIN_SAFE_INTEGER;
 };
 
-const extractGuardValue = (move: EnemyMove): string => {
-  if (move.attribute === '投') return '（投）';
+const extractGuardValue = (move: EnemyMove) => {
+  
+  if (move.attribute === '投') {
+    return <span>（<span className="font-bold">投</span>）</span>;
+  }
+
   const guard = move.guard?.trim();
-  if (!guard) return '（-）';
+  if (!guard) return <span>（-）</span>;
+
   const match = guard.match(/^[-+]?\d+$/);
-  return match ? `（ガード時${match[0]}）` : '（-）';
+  if (match) {
+    return (
+      <span>
+        （<span className="font-bold">ガード時{match[0]}</span>）
+      </span>
+    );
+  }
+
+  return <span>（-）</span>;
 };
 
 const splitNameSmart = (name: string): [string, string] => {
@@ -179,6 +192,13 @@ const MatchupChecker: React.FC = () => {
     <div className="p-4 text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-900 min-h-screen">
       <h2 className="text-2xl font-bold mb-4">Matchup Checker</h2>
 
+      <button
+          onClick={() => document.documentElement.classList.toggle('dark')}
+          className="ml-auto p-2 text-sm border rounded bg-gray-200 dark:bg-gray-600 dark:text-white"
+        >
+          ダークモード切替
+        </button>
+
       <div className="flex flex-wrap gap-4 items-end mb-6">
         <label className="flex flex-col text-sm">
           自キャラ
@@ -211,12 +231,7 @@ const MatchupChecker: React.FC = () => {
           <input type="number" value={opponentStartup} onChange={(e) => setOpponentStartup(parseInt(e.target.value))} className="mt-1 p-1 rounded bg-white dark:bg-gray-700 w-24" />
         </label>
 
-        <button
-          onClick={() => document.documentElement.classList.toggle('dark')}
-          className="ml-auto p-2 text-sm border rounded bg-gray-200 dark:bg-gray-600 dark:text-white"
-        >
-          ダークモード切替
-        </button>
+       
       </div>
       <div className="mb-6">
     <h3 className="text-lg font-semibold mb-2">発生 {opponentStartup}f の相手技一覧</h3>
@@ -284,96 +299,132 @@ const MatchupChecker: React.FC = () => {
       )}
 
 {viewMode === 'matrix' && playerData && opponentData && (
-    <div className="overflow-x-auto">
+  <div className="overflow-x-auto">
+    {(hiddenPlayerMoves.length > 0 || hiddenEnemyMoves.length > 0) && (
+      <div className="mb-4 text-sm text-white-700 bg-gray-50 dark:bg-gray-700 p-2 rounded">
+        非表示中の技があります(表の下に表示)
+      </div>
+    )}
 
-      {/* 非表示警告 */}
-      {(hiddenPlayerMoves.length > 0 || hiddenEnemyMoves.length > 0) && (
-        <div className="mb-4 text-sm text-yellow-700 bg-gray-50 p-2 rounded">
-          非表示の技があります
-        </div>
-      )}
+    
 
-      {/* 非表示技の一覧と再表示ボタン */}
-      {hiddenPlayerMoves.length > 0 && (
-        <div className="mb-2 text-sm">
-          <div className="font-semibold">非表示中の技（自キャラ）:</div>
-          <ul className="list-disc pl-5">
-            {hiddenPlayerMoves.map((name, i) => (
-              <li key={i}>
-                {name} <button onClick={() => togglePlayerHide(name)} className="ml-2 text-blue-600 underline">再表示</button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+    <table className="table-auto min-w-[1000px] border-collapse border border-gray-400 dark:border-gray-600">
+      <thead>
+        <tr className="bg-gray-200 dark:bg-gray-700">
+          <th className="border px-2 py-1 min-w-[8rem] text-sm">技名</th>
+          {getSortedEnemyMoves().map((em, idx) => {
+            const [line1, line2] = splitNameSmart(em.name);
+            const guardValue = toValidGuard(em.guard || '');
+            let bgColorClass = 'bg-gray-200 dark:bg-gray-700'; // デフォルト
 
-      {hiddenEnemyMoves.length > 0 && (
-        <div className="mb-4 text-sm">
-          <div className="font-semibold">非表示中の技（相手キャラ）:</div>
-          <ul className="list-disc pl-5">
-            {hiddenEnemyMoves.map((name, i) => (
-              <li key={i}>
-                {name} <button onClick={() => toggleEnemyHide(name)} className="ml-2 text-blue-600 underline">再表示</button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+            if (guardValue > 0) {
+              bgColorClass = 'bg-red-800 text-white'; // 危険
+            } else if (guardValue < 0) {
+              bgColorClass = 'bg-blue-800 text-white'; // 安全
+            }
 
-      {/* マトリクステーブル */}
-      <table className="table-auto border-collapse w-full border border-gray-400 dark:border-gray-600">
-        <thead>
-          <tr className="bg-gray-200 dark:bg-gray-700">
-            <th className="border px-2 py-1">技名</th>
-            {getSortedEnemyMoves().map((em, idx) => {
-              const [line1, line2] = splitNameSmart(em.name);
-              return (
-                <th key={idx} className="border px-2 py-1 text-xs">
-                  <div>{extractGuardValue(em)}</div>
-                  <div>{line1}</div>
-                  <div>{line2}</div>
-                  <div className="flex gap-1 justify-center mt-1 text-xs">
-                    <label>
-                      <input type="checkbox" checked={pinnedEnemyMoves.includes(em.name)} onChange={() => toggleEnemyPin(em.name)} />
-                      ☑
-                    </label>
-                    <label>
-                      <input type="checkbox" checked={hiddenEnemyMoves.includes(em.name)} onChange={() => toggleEnemyHide(em.name)} />
-                      ×
-                    </label>
-                  </div>
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {getSortedPlayerMoves().map((pm, idx) => (
-            <tr key={idx} className="even:bg-gray-50 dark:even:bg-gray-800">
-              <td className="border px-2 py-1 text-sm whitespace-nowrap">
-                {formatPlayerMoveName(pm)}
-                <div className="flex gap-2 mt-1 text-xs">
+            return (
+              <th
+                key={idx}
+                className={`border px-2 py-1 text-xs break-words whitespace-normal min-w-[6rem] ${bgColorClass}`}
+              >
+                <div>{extractGuardValue(em)}</div>
+                <div>{line1}</div>
+                <div>{line2}</div>
+                <div className="flex gap-1 justify-center mt-1 text-xs">
                   <label>
-                    <input type="checkbox" checked={pinnedPlayerMoves.includes(pm.name)} onChange={() => togglePlayerPin(pm.name)} />
-                    ピン
+                    <input
+                      type="checkbox"
+                      checked={pinnedEnemyMoves.includes(em.name)}
+                      onChange={() => toggleEnemyPin(em.name)}
+                    />
+                    ☑
                   </label>
                   <label>
-                    <input type="checkbox" checked={hiddenPlayerMoves.includes(pm.name)} onChange={() => togglePlayerHide(pm.name)} />
-                    非表示
+                    <input
+                      type="checkbox"
+                      checked={hiddenEnemyMoves.includes(em.name)}
+                      onChange={() => toggleEnemyHide(em.name)}
+                    />
+                    ×
                   </label>
                 </div>
+              </th>
+            );
+          })}
+        </tr>
+      </thead>
+      <tbody>
+        {getSortedPlayerMoves().map((pm, idx) => (
+          <tr key={idx} className="even:bg-gray-50 dark:even:bg-gray-800">
+            <td className="border px-2 py-1 text-sm whitespace-nowrap min-w-[8rem]">
+              {formatPlayerMoveName(pm)}
+              <div className="flex gap-2 mt-1 text-xs">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={pinnedPlayerMoves.includes(pm.name)}
+                    onChange={() => togglePlayerPin(pm.name)}
+                  />
+                  ピン
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={hiddenPlayerMoves.includes(pm.name)}
+                    onChange={() => togglePlayerHide(pm.name)}
+                  />
+                  非表示
+                </label>
+              </div>
+            </td>
+            {getSortedEnemyMoves().map((em, j) => (
+              <td key={j} className="border px-2 py-1 text-center min-w-[6rem]">
+                {renderResult(pm.startup, em.guard, opponentStartup)}
               </td>
-              {getSortedEnemyMoves().map((em, j) => (
-                <td key={j} className="border px-2 py-1 text-center">
-                  {renderResult(pm.startup, em.guard, opponentStartup)}
-                </td>
-              ))}
-            </tr>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+
+    {hiddenPlayerMoves.length > 0 && (
+      <div className="mb-2 text-sm">
+        <div className="font-semibold">非表示中の技（自キャラ）:</div>
+        <ul className="list-disc pl-5">
+          {hiddenPlayerMoves.map((name, i) => (
+            <li key={i}>
+              {name}{' '}
+              <button onClick={() => togglePlayerHide(name)} className="ml-2 text-blue-600 underline">
+                再表示
+              </button>
+            </li>
           ))}
-        </tbody>
-      </table>
-    </div>
-  )}
+        </ul>
+      </div>
+    )}
+
+    {hiddenEnemyMoves.length > 0 && (
+      <div className="mb-4 text-sm">
+        <div className="font-semibold">非表示中の技（相手キャラ）:</div>
+        <ul className="list-disc pl-5">
+          {hiddenEnemyMoves.map((name, i) => (
+            <li key={i}>
+              {name}{' '}
+              <button onClick={() => toggleEnemyHide(name)} className="ml-2 text-blue-600 underline">
+                再表示
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    
+  </div>
+  
+)}
+
 
     </div>
   );
