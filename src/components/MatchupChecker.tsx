@@ -318,9 +318,11 @@ const MatchupChecker: React.FC = () => {
             let bgColorClass = 'bg-gray-200 dark:bg-gray-700'; // デフォルト
 
             if (guardValue > 0) {
-              bgColorClass = 'bg-red-800 text-white'; // 危険
+              bgColorClass = 'bg-red-800 text-white'; // 危険技（+）
+            } else if (guardValue <= -4) {
+              bgColorClass = 'bg-green-800 text-white'; // 確反あり技（-4以下）
             } else if (guardValue < 0) {
-              bgColorClass = 'bg-blue-800 text-white'; // 安全
+              bgColorClass = 'bg-blue-800 text-white'; // 安全技（-1 ～ -3）
             }
 
             return (
@@ -388,6 +390,22 @@ const MatchupChecker: React.FC = () => {
       </tbody>
     </table>
 
+    
+    <div className="flex gap-2 mt-2 text-sm">
+      <button
+        onClick={resetHiddenPlayerMoves}
+        className="px-2 py-1 bg-gray-500 text-white rounded"
+      >
+        自キャラの非表示技をリセット
+      </button>
+      <button
+        onClick={resetHiddenEnemyMoves}
+        className="px-2 py-1 bg-gray-500 text-white rounded"
+      >
+        相手キャラの非表示技をリセット
+      </button>
+    </div>
+
     {hiddenPlayerMoves.length > 0 && (
       <div className="mb-2 text-sm">
         <div className="font-semibold">非表示中の技（自キャラ）:</div>
@@ -403,6 +421,9 @@ const MatchupChecker: React.FC = () => {
         </ul>
       </div>
     )}
+
+    
+
 
     {hiddenEnemyMoves.length > 0 && (
       <div className="mb-4 text-sm">
