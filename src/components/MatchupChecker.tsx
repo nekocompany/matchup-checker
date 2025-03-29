@@ -5,14 +5,16 @@ interface Move {
   name: string;
   startup: string;
   type?: string;
+  attribute?: string; // ← 追加
 }
 
 interface EnemyMove {
   id?: string;
   name: string;
   guard: string;
-  startup?: string; // ★ 追加
+  startup?: string;
   type?: string;
+  attribute?: string; // ← これを追加
 }
 
 interface CharacterData {
@@ -34,8 +36,11 @@ const toValidGuard = (s: string): number => {
 };
 
 const extractGuardValue = (move: EnemyMove): string => {
-  const match = move.guard?.trim().match(/^[-+]?\d+$/);
-  return match ? `(${match[0]})` : '';
+  if (move.attribute === '投') return '（投）'; // 投げ技なら固定表記
+  const guard = move.guard?.trim();
+  if (!guard) return '（-）'; // guardが空欄なら「（-）」と表示
+  const match = guard.match(/^[-+]?\d+$/);
+  return match ? `（ガード時${match[0]}）` : '（-）'; // 整数として妥当なら表示、そうでなければ「（-）」
 };
 
 const splitNameSmart = (name: string): [string, string] => {
@@ -71,8 +76,11 @@ const MatchupChecker: React.FC = () => {
   const [pinnedPlayerMoves, setPinnedPlayerMoves] = useState<string[]>([]);
   const [pinnedEnemyMoves, setPinnedEnemyMoves] = useState<string[]>([]);
 
+  // 非表示関連
   const [hiddenPlayerMoves, setHiddenPlayerMoves] = useState<string[]>([]);
   const [hiddenEnemyMoves, setHiddenEnemyMoves] = useState<string[]>([]);
+  const resetHiddenPlayerMoves = () => setHiddenPlayerMoves([]);
+  const resetHiddenEnemyMoves = () => setHiddenEnemyMoves([]);
 
   useEffect(() => {
     fetch('/data/character_list.json')
@@ -114,10 +122,14 @@ const MatchupChecker: React.FC = () => {
 
   const formatPlayerMoveName = (move: Move) => {
     const startupValue = move.startup?.trim();
+    const isThrow = move.attribute === '投'; // ★投げ判定
+  
+    const baseName = isThrow ? `${move.name} (投)` : move.name;
+  
     if (startupValue && /^\d+$/.test(startupValue)) {
-      return `${move.name} (${startupValue})`;
+      return `${baseName} (${startupValue})`;
     }
-    return move.name;
+    return baseName;
   };
 
   const getSortedPlayerMoves = (): Move[] => {
@@ -217,7 +229,7 @@ const MatchupChecker: React.FC = () => {
           <strong>相手の技で『発生{opponentStartup}F』になるもの:</strong>
           <ul>
             {getEnemyMovesMatchingStartup().map((move, index) => (
-              <li key={index}>{move.name}（ガード時{move.guard}）</li>
+              <li key={index}>{move.name}{extractGuardValue(move)}</li>
             ))}
             {getEnemyMovesMatchingStartup().length === 0 && (
               <li>該当する技は見つかりませんでした。</li>
@@ -256,7 +268,12 @@ const MatchupChecker: React.FC = () => {
       )}
 
       {viewMode === 'matrix' && playerData && opponentData && (
-        <div>
+            <div>
+              {(hiddenPlayerMoves.length > 0 || hiddenEnemyMoves.length > 0) && (
+              <div style={{ color: '#0497d1', marginTop: '0.5em' }}>
+                ※ 非表示中の技があります（下部に表示）
+              </div>
+            )}
           <table border={1}>
             <thead>
               <tr>
@@ -310,9 +327,52 @@ const MatchupChecker: React.FC = () => {
               ))}
             </tbody>
           </table>
+
+           {/* 表示非表示 */}
+        {(hiddenPlayerMoves.length > 0 || hiddenEnemyMoves.length > 0) && (
+          <div style={{ marginTop: '1em' }}>
+            {hiddenPlayerMoves.length > 0 && (
+              <div>
+                <h4>非表示中の自キャラ技（{hiddenPlayerMoves.length}）</h4>
+                <button onClick={resetHiddenPlayerMoves}>すべて再表示</button>
+                <ul>
+                  {playerData.moves
+                    .filter((m) => hiddenPlayerMoves.includes(m.name))
+                    .map((move) => (
+                      <li key={move.name}>
+                        {formatPlayerMoveName(move)}{' '}
+                        <button onClick={() => togglePlayerHide(move.name)}>再表示</button>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            )}
+
+            {hiddenEnemyMoves.length > 0 && (
+              <div>
+                <h4>非表示中の相手技（{hiddenEnemyMoves.length}）</h4>
+                <button onClick={resetHiddenEnemyMoves}>すべて再表示</button>
+                <ul>
+                  {opponentData.moves
+                    .filter((m) => hiddenEnemyMoves.includes(m.name))
+                    .map((move) => (
+                      <li key={move.name}>
+                        {move.name}（ガード時{move.guard}）{' '}
+                        <button onClick={() => toggleEnemyHide(move.name)}>再表示</button>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+          
         </div>
       )}
+
     </div>
+
   );
 };
 
