@@ -27,6 +27,16 @@ interface EnemyData {
   moves: EnemyMove[];
 }
 
+interface SplitEnemyMoveInfo {
+  baseName: string;
+  worstName: string;
+  worstGuard: string;
+  bestName: string;
+  bestGuard: string;
+}
+
+
+
 const toValidStartup = (s: string): number => {
   return /^\d+$/.test(s.trim()) ? parseInt(s.trim()) : Number.MAX_SAFE_INTEGER;
 };
@@ -102,32 +112,50 @@ const MatchupChecker: React.FC = () => {
 
   // 最悪最良注意書き用
   const [splitEnemyMoveNames, setSplitEnemyMoveNames] = useState<string[]>([]);
+  const [showSplitInfo, setShowSplitInfo] = useState<boolean>(false);
+
+  const [splitEnemyMoveInfos, setSplitEnemyMoveInfos] = useState<SplitEnemyMoveInfo[]>([]);
 
 
   const splitNamesTemp: string[] = [];
 
-const expandEnemyMoves = (moves: EnemyMove[], recordSplitNames: (names: string[]) => void): EnemyMove[] => {
-  const expanded: EnemyMove[] = [];
-
-  moves.forEach((move) => {
-    const guard = move.guard?.trim() || '';
-    const rangeMatch = guard.match(/^([+-]?\d+)～([+-]?\d+)$/);
-
-    if (rangeMatch) {
-      const [_, min, max] = rangeMatch;
-      const baseName = move.name;
-      splitNamesTemp.push(baseName);
-
-      expanded.push({ ...move, name: `${baseName}（最良）`, guard: min });
-      expanded.push({ ...move, name: `${baseName}（最悪）`, guard: max });
-    } else {
-      expanded.push(move);
-    }
-  });
-
-  recordSplitNames(splitNamesTemp); // コールバックで親に渡す
-  return expanded;
-};
+  const expandEnemyMoves = (
+    moves: EnemyMove[],
+    recordSplitInfos: (infos: SplitEnemyMoveInfo[]) => void
+  ): EnemyMove[] => {
+    const expanded: EnemyMove[] = [];
+    const splitInfos: SplitEnemyMoveInfo[] = [];
+  
+    moves.forEach((move) => {
+      const guard = move.guard?.trim() || '';
+      const rangeMatch = guard.match(/^([+-]?\d+)～([+-]?\d+)$/);
+  
+      if (rangeMatch) {
+        const [_, min, max] = rangeMatch;
+        const baseName = move.name;
+  
+        const worst = { ...move, name: `${baseName}（最悪）`, guard: max };
+        const best = { ...move, name: `${baseName}（最良）`, guard: min };
+  
+        expanded.push(best);
+        expanded.push(worst);
+  
+        splitInfos.push({
+          baseName,
+          worstName: worst.name,
+          worstGuard: worst.guard || '-',
+          bestName: best.name,
+          bestGuard: best.guard || '-',
+        });
+      } else {
+        expanded.push(move);
+      }
+    });
+  
+    recordSplitInfos(splitInfos);
+    return expanded;
+  };
+  
 
   
   
@@ -154,7 +182,7 @@ const expandEnemyMoves = (moves: EnemyMove[], recordSplitNames: (names: string[]
       .then((res) => res.json())
       .then((data) => {
         const filtered = data.filter((m: EnemyMove) => m.type !== '共通システム');
-        const expanded = expandEnemyMoves(filtered, setSplitEnemyMoveNames);
+        const expanded = expandEnemyMoves(filtered, setSplitEnemyMoveInfos);
   
         const sorted = expanded.sort((a, b) => toValidGuard(b.guard) - toValidGuard(a.guard));
         setOpponentData({ name: opponent, moves: sorted });
@@ -294,13 +322,7 @@ const expandEnemyMoves = (moves: EnemyMove[], recordSplitNames: (names: string[]
           </select>
         </label>
 
-        <label className="flex flex-col text-sm">
-          表示モード
-          <select value={viewMode} onChange={(e) => setViewMode(e.target.value as 'detail' | 'matrix')} className="mt-1 p-1 rounded bg-white dark:bg-gray-700">
-            <option value="detail">個別技</option>
-            <option value="matrix">判定マトリクス</option>
-          </select>
-        </label>
+
 
         <label className="flex flex-col text-sm">
           相手の次の技の発生
@@ -325,7 +347,7 @@ const expandEnemyMoves = (moves: EnemyMove[], recordSplitNames: (names: string[]
       </div>
 
       <div>
-        <label>相手ガード時:</label>
+        <label>ガード硬直差:</label>
         <div className="flex gap-1">
           <input type="number" placeholder="最小" className="w-16 p-1 rounded bg-white dark:bg-gray-700 dark:text-white"
           onChange={(e) => setEnemyGuardMin(e.target.value ? parseInt(e.target.value) : null)} />
@@ -357,14 +379,31 @@ const expandEnemyMoves = (moves: EnemyMove[], recordSplitNames: (names: string[]
       </div>
     </div>
     
-    {splitEnemyMoveNames.length > 0 && (
-      <div className="mb-4 text-sm text-white-900 bg-yellow-100 dark:bg-gray-700 p-2 rounded">
-        <div className="font-bold">以下の技は有利フレームに幅があるため、最良/最悪に分割表示されます:</div>
-        <ul className="list-disc pl-5 mt-1">
-          {splitEnemyMoveNames.map((name, i) => (
-            <li key={i}>{name}</li>
-          ))}
-        </ul>
+    {splitEnemyMoveInfos.length > 0 && (
+      <div className="mb-4 text-sm text-gray-400 bg-yellow-100 dark:bg-gray-700 p-2 rounded">
+        <div className="flex justify-between items-center">
+          <div className="font-bold">
+            以下の技は有利フレームに幅があるため、最悪/最良に分割表示されます:
+            <button
+            onClick={() => setShowSplitInfo((prev) => !prev)}
+            className="ml-4 text-xs text-white bg-gray-600 px-2 py-0.5 rounded"
+          >
+            {showSplitInfo ? '▲ 閉じる' : '▼ 開く'}
+          </button>
+          </div>
+          
+        </div>
+
+        {showSplitInfo && (
+          <ul className="list-disc pl-5 mt-2">
+            {splitEnemyMoveInfos.map((info, i) => (
+              <li key={i}>
+                {info.worstName}（{info.worstGuard}）<br />
+                {info.bestName}（{info.bestGuard}）
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     )}
 
