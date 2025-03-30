@@ -158,6 +158,7 @@ const MatchupChecker: React.FC = () => {
     if (!playerData) return [];
     return playerData.moves
       .filter((m) => {
+        if (focusedPlayerMove && m.name !== focusedPlayerMove) return false; // ←追加
         if (playerMoveNameFilter && !m.name.includes(playerMoveNameFilter)) return false;
         const val = toValidStartup(m.startup);
         return (
@@ -179,6 +180,7 @@ const MatchupChecker: React.FC = () => {
     if (!opponentData) return [];
     return opponentData.moves
       .filter((m) => {
+        if (focusedEnemyMove && m.name !== focusedEnemyMove) return false; // ←追加
         if (enemyMoveNameFilter && !m.name.includes(enemyMoveNameFilter)) return false;
         const val = toValidGuard(m.guard || '');
         return (
