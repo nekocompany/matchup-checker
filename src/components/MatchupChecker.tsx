@@ -318,7 +318,7 @@ const MatchupChecker: React.FC = () => {
 
       {viewMode === 'detail' && opponentData && (
         
-        <div className="overflow-x-auto bg-gray-100 dark:bg-gray-900">
+        <div className="overflow-x-auto bg-gray-900">
           <label className="block mb-2 text-sm">
             相手の技を選択:
             <select onChange={(e) => setSelectedEnemyMove(opponentData.moves.find((m) => m.name === e.target.value) || null)} className="ml-2 p-1 rounded bg-white dark:bg-gray-700">
