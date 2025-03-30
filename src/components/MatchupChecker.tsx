@@ -316,41 +316,8 @@ const MatchupChecker: React.FC = () => {
 
       
 
-      {viewMode === 'detail' && opponentData && (
-        
-        <div className="overflow-x-auto bg-gray-900">
-          <label className="block mb-2 text-sm">
-            相手の技を選択:
-            <select onChange={(e) => setSelectedEnemyMove(opponentData.moves.find((m) => m.name === e.target.value) || null)} className="ml-2 p-1 rounded bg-white dark:bg-gray-700">
-              <option value="">--</option>
-              {opponentData.moves.map((move, index) => (
-                <option key={index} value={move.name}>{move.name}</option>
-              ))}
-            </select>
-          </label>
 
-          <table className="table-auto w-full border-collapse border border-gray-400 dark:border-gray-600">
-            <thead>
-              <tr className="bg-gray-200 dark:bg-gray-700">
-                <th className="border border-gray-400 dark:border-gray-600 px-2 py-1">技名</th>
-                <th className="border border-gray-400 dark:border-gray-600 px-2 py-1">発生</th>
-                <th className="border border-gray-400 dark:border-gray-600 px-2 py-1">判定</th>
-              </tr>
-            </thead>
-            <tbody>
-              {getSortedPlayerMoves().map((move, index) => (
-                <tr key={index} className="even:bg-gray-50 dark:even:bg-gray-800">
-                  <td className="border border-gray-400 dark:border-gray-600 px-2 py-1 whitespace-nowrap">{formatPlayerMoveName(move)}</td>
-                  <td className="border border-gray-400 dark:border-gray-600 px-2 py-1">{move.startup}</td>
-                  <td className="border border-gray-400 dark:border-gray-600 px-2 py-1">{selectedEnemyMove ? renderResult(move.startup, selectedEnemyMove.guard, opponentStartup) : '-'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
 
-{viewMode === 'matrix' && playerData && opponentData && (
   <div className="overflow-x-auto bg-gray-100 dark:bg-gray-900">
     {(hiddenPlayerMoves.length > 0 || hiddenEnemyMoves.length > 0) && (
       <div className="mb-4 text-sm text-white-700 bg-gray-50 dark:bg-gray-700 p-2 rounded">
@@ -496,7 +463,7 @@ const MatchupChecker: React.FC = () => {
     
   </div>
   
-)}
+
 
 
     </div>
