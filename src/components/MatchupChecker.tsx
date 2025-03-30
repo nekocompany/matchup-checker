@@ -96,6 +96,10 @@ const MatchupChecker: React.FC = () => {
   const [focusedPlayerMove, setFocusedPlayerMove] = useState<string | null>(null);
   const [focusedEnemyMove, setFocusedEnemyMove] = useState<string | null>(null);
 
+  // 文字列絞り込み
+  const [playerMoveNameFilter, setPlayerMoveNameFilter] = useState<string>('');
+  const [enemyMoveNameFilter, setEnemyMoveNameFilter] = useState<string>('');
+
   useEffect(() => {
     fetch('/data/character_list.json')
       .then((res) => res.json())
@@ -128,10 +132,16 @@ const MatchupChecker: React.FC = () => {
     const s = parseInt(startup);
     const a = parseInt(advantage);
     if (isNaN(s) || isNaN(a)) return '-';
-    const diff = opponent - a;
-    if (s < diff) return '〇';
-    if (s === diff) return '△';
-    return '×';
+  
+    const diff = opponent - a;       // 技をガードしてから相手が動けるまでのフレーム
+    const margin = diff - s;         // 自キャラ技が間に合うまでの余裕
+  
+    let resultSymbol = '';
+    if (margin > 0) resultSymbol = '〇';
+    else if (margin === 0) resultSymbol = '△';
+    else resultSymbol = '×';
+  
+    return `${resultSymbol}(${margin})`;
   };
 
   const formatPlayerMoveName = (move: Move) => {
@@ -148,7 +158,7 @@ const MatchupChecker: React.FC = () => {
     if (!playerData) return [];
     return playerData.moves
       .filter((m) => {
-        if (focusedPlayerMove && m.name !== focusedPlayerMove) return false;
+        if (playerMoveNameFilter && !m.name.includes(playerMoveNameFilter)) return false;
         const val = toValidStartup(m.startup);
         return (
           !hiddenPlayerMoves.includes(m.name) &&
@@ -169,7 +179,7 @@ const MatchupChecker: React.FC = () => {
     if (!opponentData) return [];
     return opponentData.moves
       .filter((m) => {
-        if (focusedEnemyMove && m.name !== focusedEnemyMove) return false;
+        if (enemyMoveNameFilter && !m.name.includes(enemyMoveNameFilter)) return false;
         const val = toValidGuard(m.guard || '');
         return (
           !hiddenEnemyMoves.includes(m.name) &&
@@ -290,6 +300,26 @@ const MatchupChecker: React.FC = () => {
     </div>
     </div>
     
+    <div className="flex gap-4 items-end text-sm mb-4">
+      <div>
+        <label>自キャラ技名フィルタ:</label>
+        <input
+          type="text"
+          value={playerMoveNameFilter}
+          onChange={(e) => setPlayerMoveNameFilter(e.target.value)}
+          className="w-40 p-1 rounded bg-white dark:bg-gray-700 dark:text-white"
+        />
+      </div>
+      <div>
+        <label>相手キャラ技名フィルタ:</label>
+        <input
+          type="text"
+          value={enemyMoveNameFilter}
+          onChange={(e) => setEnemyMoveNameFilter(e.target.value)}
+          className="w-40 p-1 rounded bg-white dark:bg-gray-700 dark:text-white"
+        />
+      </div>
+    </div>
     
 
 
