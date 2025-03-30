@@ -100,6 +100,39 @@ const MatchupChecker: React.FC = () => {
   const [playerMoveNameFilter, setPlayerMoveNameFilter] = useState<string>('');
   const [enemyMoveNameFilter, setEnemyMoveNameFilter] = useState<string>('');
 
+  const expandEnemyMoves = (moves: EnemyMove[]): EnemyMove[] => {
+    const expanded: EnemyMove[] = [];
+  
+    moves.forEach((move) => {
+      const guard = move.guard?.trim() || '';
+  
+      // 「-4～5」や「+2～-3」などの範囲表記を検出
+      const rangeMatch = guard.match(/^([+-]?\d+)～([+-]?\d+)$/);
+      if (rangeMatch) {
+        const [_, min, max] = rangeMatch;
+  
+        // 技名を変えて最悪版・最良版を追加
+        expanded.push({
+          ...move,
+          name: `${move.name}（最良）`,
+          guard: min,
+        });
+  
+        expanded.push({
+          ...move,
+          name: `${move.name}（最悪）`,
+          guard: max,
+        });
+      } else {
+        // 通常の単一ガード値や記号などはそのまま
+        expanded.push(move);
+      }
+    });
+  
+    return expanded;
+  };
+  
+
   useEffect(() => {
     fetch('/data/character_list.json')
       .then((res) => res.json())
@@ -122,7 +155,14 @@ const MatchupChecker: React.FC = () => {
       .then((res) => res.json())
       .then((data) => {
         const filtered = data.filter((m: EnemyMove) => m.type !== '共通システム');
-        const sorted = filtered.sort((a: EnemyMove, b: EnemyMove) => toValidGuard(b.guard) - toValidGuard(a.guard));
+  
+        // ←ここで展開処理を挿入
+        const expanded = expandEnemyMoves(filtered);
+  
+        const sorted = expanded.sort(
+          (a, b) => toValidGuard(b.guard) - toValidGuard(a.guard)
+        );
+  
         setOpponentData({ name: opponent, moves: sorted });
         setPinnedEnemyMoves([]);
       });

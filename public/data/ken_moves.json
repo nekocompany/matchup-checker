@@ -689,7 +689,7 @@
     "type": "必殺技"
   },
   {
-    "name": "火砕蹴",
+    "name": "火砕蹴(OD風鎌蹴り後)",
     "startup": "15",
     "active": "15-17",
     "recovery": "29",
@@ -728,7 +728,7 @@
     "type": "必殺技"
   },
   {
-    "name": "火砕蹴",
+    "name": "火砕蹴(OD轟雷落とし後)",
     "startup": "11",
     "active": "11-13",
     "recovery": "29",
@@ -767,7 +767,7 @@
     "type": "必殺技"
   },
   {
-    "name": "火砕蹴",
+    "name": "火砕蹴(OD閃火脚後)",
     "startup": "15",
     "active": "15-17",
     "recovery": "37",
