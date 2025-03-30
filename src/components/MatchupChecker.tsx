@@ -92,6 +92,10 @@ const MatchupChecker: React.FC = () => {
   const [enemyGuardMin, setEnemyGuardMin] = useState<number | null>(null);
   const [enemyGuardMax, setEnemyGuardMax] = useState<number | null>(null);
 
+  // 絞り込み対象の技名（nullなら全表示）
+  const [focusedPlayerMove, setFocusedPlayerMove] = useState<string | null>(null);
+  const [focusedEnemyMove, setFocusedEnemyMove] = useState<string | null>(null);
+
   useEffect(() => {
     fetch('/data/character_list.json')
       .then((res) => res.json())
@@ -144,6 +148,7 @@ const MatchupChecker: React.FC = () => {
     if (!playerData) return [];
     return playerData.moves
       .filter((m) => {
+        if (focusedPlayerMove && m.name !== focusedPlayerMove) return false;
         const val = toValidStartup(m.startup);
         return (
           !hiddenPlayerMoves.includes(m.name) &&
@@ -164,6 +169,7 @@ const MatchupChecker: React.FC = () => {
     if (!opponentData) return [];
     return opponentData.moves
       .filter((m) => {
+        if (focusedEnemyMove && m.name !== focusedEnemyMove) return false;
         const val = toValidGuard(m.guard || '');
         return (
           !hiddenEnemyMoves.includes(m.name) &&
@@ -207,6 +213,10 @@ const MatchupChecker: React.FC = () => {
       prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
     );
   };
+
+  
+
+  
 
   return (
     <div className="p-4 text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-900 min-h-screen">
@@ -314,6 +324,24 @@ const MatchupChecker: React.FC = () => {
     </ul>
   </div>
 
+  {(focusedPlayerMove || focusedEnemyMove) && (
+  <div className="mb-4 text-sm text-white-700 bg-yellow-100 dark:bg-gray-700 p-2 rounded">
+    <div>現在の絞り込み状態：</div>
+    {focusedPlayerMove && <div>自キャラ技: {focusedPlayerMove}</div>}
+    {focusedEnemyMove && <div>相手キャラ技: {focusedEnemyMove}</div>}
+    <button
+      onClick={() => {
+        setFocusedPlayerMove(null);
+        setFocusedEnemyMove(null);
+      }}
+      className="mt-2 px-2 py-1 bg-gray-500 text-white rounded"
+    >
+      絞り込み解除
+    </button>
+  </div>
+)}
+
+
       
 
 
@@ -337,11 +365,11 @@ const MatchupChecker: React.FC = () => {
             let bgColorClass = 'bg-gray-200 dark:bg-gray-700'; // デフォルト
 
             if (guardValue > 0) {
-              bgColorClass = 'bg-red-800 text-white'; // 危険技（+）
+              bgColorClass = 'bg-rose-800 text-white'; // 危険技（+）
             } else if (guardValue <= -4) {
               bgColorClass = 'bg-green-800 text-white'; // 確反あり技（-4以下）
             } else if (guardValue < 0) {
-              bgColorClass = 'bg-blue-800 text-white'; // 安全技（-1 ～ -3）
+              bgColorClass = 'bg-blue-700 text-white'; // 安全技（-1 ～ -3）
             }
 
             return (
@@ -369,6 +397,12 @@ const MatchupChecker: React.FC = () => {
                     />
                     ×
                   </label>
+                  <button
+                    onClick={() => setFocusedEnemyMove(em.name)}
+                    className="text-xs px-1 py-0.5 bg-gray-900 text-white rounded"
+                  >
+                    限
+                  </button>
                 </div>
               </th>
             );
@@ -397,6 +431,12 @@ const MatchupChecker: React.FC = () => {
                   />
                   非表示
                 </label>
+                <button
+                  onClick={() => setFocusedPlayerMove(pm.name)}
+                  className="text-xs px-1 py-0.5 bg-gray-700 text-white rounded"
+                >
+                  限
+                </button>
               </div>
             </td>
             {getSortedEnemyMoves().map((em, j) => (
