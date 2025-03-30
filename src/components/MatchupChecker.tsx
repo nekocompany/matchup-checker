@@ -86,6 +86,12 @@ const MatchupChecker: React.FC = () => {
   const resetHiddenPlayerMoves = () => setHiddenPlayerMoves([]);
   const resetHiddenEnemyMoves = () => setHiddenEnemyMoves([]);
 
+  const [playerStartupMin, setPlayerStartupMin] = useState<number | null>(null);
+  const [playerStartupMax, setPlayerStartupMax] = useState<number | null>(null);
+
+  const [enemyGuardMin, setEnemyGuardMin] = useState<number | null>(null);
+  const [enemyGuardMax, setEnemyGuardMax] = useState<number | null>(null);
+
   useEffect(() => {
     fetch('/data/character_list.json')
       .then((res) => res.json())
@@ -137,7 +143,14 @@ const MatchupChecker: React.FC = () => {
   const getSortedPlayerMoves = (): Move[] => {
     if (!playerData) return [];
     return playerData.moves
-      .filter((m) => !hiddenPlayerMoves.includes(m.name))
+      .filter((m) => {
+        const val = toValidStartup(m.startup);
+        return (
+          !hiddenPlayerMoves.includes(m.name) &&
+          (playerStartupMin === null || val >= playerStartupMin) &&
+          (playerStartupMax === null || val <= playerStartupMax)
+        );
+      })
       .sort((a, b) => {
         const aPinned = pinnedPlayerMoves.includes(a.name);
         const bPinned = pinnedPlayerMoves.includes(b.name);
@@ -150,7 +163,14 @@ const MatchupChecker: React.FC = () => {
   const getSortedEnemyMoves = (): EnemyMove[] => {
     if (!opponentData) return [];
     return opponentData.moves
-      .filter((m) => !hiddenEnemyMoves.includes(m.name))
+      .filter((m) => {
+        const val = toValidGuard(m.guard || '');
+        return (
+          !hiddenEnemyMoves.includes(m.name) &&
+          (enemyGuardMin === null || val >= enemyGuardMin) &&
+          (enemyGuardMax === null || val <= enemyGuardMax)
+        );
+      })
       .sort((a, b) => {
         const aPinned = pinnedEnemyMoves.includes(a.name);
         const bPinned = pinnedEnemyMoves.includes(b.name);
@@ -233,6 +253,38 @@ const MatchupChecker: React.FC = () => {
 
        
       </div>
+
+      <div className="flex gap-4 items-end text-sm mb-4">
+      
+      <div className="flex gap-4 items-end text-sm">
+      
+      <div>
+        <label>自キャラ発生:</label>
+        <div className="flex gap-1">
+          <input type="number" placeholder="最小" className="w-16 p-1 rounded bg-white dark:bg-gray-700 dark:text-white"
+          onChange={(e) => setPlayerStartupMin(e.target.value ? parseInt(e.target.value) : null)} />
+          <input type="number" placeholder="最大" className="w-16 p-1 rounded bg-white dark:bg-gray-700 dark:text-white"
+          onChange={(e) => setPlayerStartupMax(e.target.value ? parseInt(e.target.value) : null)} />
+        </div>
+      </div>
+
+      <div>
+        <label>相手ガード時:</label>
+        <div className="flex gap-1">
+          <input type="number" placeholder="最小" className="w-16 p-1 rounded bg-white dark:bg-gray-700 dark:text-white"
+          onChange={(e) => setEnemyGuardMin(e.target.value ? parseInt(e.target.value) : null)} />
+          <input type="number" placeholder="最大" className="w-16 p-1 rounded bg-white dark:bg-gray-700 dark:text-white"
+          onChange={(e) => setEnemyGuardMax(e.target.value ? parseInt(e.target.value) : null)} />
+        </div>
+      </div>
+    </div>
+    </div>
+    
+    
+
+
+
+
       <div className="mb-6">
     <h3 className="text-lg font-semibold mb-2">発生 {opponentStartup}f の相手技一覧</h3>
     <ul className="list-disc pl-5 text-sm">
@@ -266,7 +318,7 @@ const MatchupChecker: React.FC = () => {
 
       {viewMode === 'detail' && opponentData && (
         
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto bg-gray-100 dark:bg-gray-900">
           <label className="block mb-2 text-sm">
             相手の技を選択:
             <select onChange={(e) => setSelectedEnemyMove(opponentData.moves.find((m) => m.name === e.target.value) || null)} className="ml-2 p-1 rounded bg-white dark:bg-gray-700">
@@ -299,7 +351,7 @@ const MatchupChecker: React.FC = () => {
       )}
 
 {viewMode === 'matrix' && playerData && opponentData && (
-  <div className="overflow-x-auto">
+  <div className="overflow-x-auto bg-gray-100 dark:bg-gray-900">
     {(hiddenPlayerMoves.length > 0 || hiddenEnemyMoves.length > 0) && (
       <div className="mb-4 text-sm text-white-700 bg-gray-50 dark:bg-gray-700 p-2 rounded">
         非表示中の技があります(表の下に表示)
