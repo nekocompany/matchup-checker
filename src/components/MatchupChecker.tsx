@@ -100,37 +100,36 @@ const MatchupChecker: React.FC = () => {
   const [playerMoveNameFilter, setPlayerMoveNameFilter] = useState<string>('');
   const [enemyMoveNameFilter, setEnemyMoveNameFilter] = useState<string>('');
 
-  const expandEnemyMoves = (moves: EnemyMove[]): EnemyMove[] => {
-    const expanded: EnemyMove[] = [];
+  // 最悪最良注意書き用
+  const [splitEnemyMoveNames, setSplitEnemyMoveNames] = useState<string[]>([]);
+
+
+  const splitNamesTemp: string[] = [];
+
+const expandEnemyMoves = (moves: EnemyMove[], recordSplitNames: (names: string[]) => void): EnemyMove[] => {
+  const expanded: EnemyMove[] = [];
+
+  moves.forEach((move) => {
+    const guard = move.guard?.trim() || '';
+    const rangeMatch = guard.match(/^([+-]?\d+)～([+-]?\d+)$/);
+
+    if (rangeMatch) {
+      const [_, min, max] = rangeMatch;
+      const baseName = move.name;
+      splitNamesTemp.push(baseName);
+
+      expanded.push({ ...move, name: `${baseName}（最良）`, guard: min });
+      expanded.push({ ...move, name: `${baseName}（最悪）`, guard: max });
+    } else {
+      expanded.push(move);
+    }
+  });
+
+  recordSplitNames(splitNamesTemp); // コールバックで親に渡す
+  return expanded;
+};
+
   
-    moves.forEach((move) => {
-      const guard = move.guard?.trim() || '';
-  
-      // 「-4～5」や「+2～-3」などの範囲表記を検出
-      const rangeMatch = guard.match(/^([+-]?\d+)～([+-]?\d+)$/);
-      if (rangeMatch) {
-        const [_, min, max] = rangeMatch;
-  
-        // 技名を変えて最悪版・最良版を追加
-        expanded.push({
-          ...move,
-          name: `${move.name}（最良）`,
-          guard: min,
-        });
-  
-        expanded.push({
-          ...move,
-          name: `${move.name}（最悪）`,
-          guard: max,
-        });
-      } else {
-        // 通常の単一ガード値や記号などはそのまま
-        expanded.push(move);
-      }
-    });
-  
-    return expanded;
-  };
   
 
   useEffect(() => {
@@ -155,14 +154,9 @@ const MatchupChecker: React.FC = () => {
       .then((res) => res.json())
       .then((data) => {
         const filtered = data.filter((m: EnemyMove) => m.type !== '共通システム');
+        const expanded = expandEnemyMoves(filtered, setSplitEnemyMoveNames);
   
-        // ←ここで展開処理を挿入
-        const expanded = expandEnemyMoves(filtered);
-  
-        const sorted = expanded.sort(
-          (a, b) => toValidGuard(b.guard) - toValidGuard(a.guard)
-        );
-  
+        const sorted = expanded.sort((a, b) => toValidGuard(b.guard) - toValidGuard(a.guard));
         setOpponentData({ name: opponent, moves: sorted });
         setPinnedEnemyMoves([]);
       });
@@ -363,6 +357,16 @@ const MatchupChecker: React.FC = () => {
       </div>
     </div>
     
+    {splitEnemyMoveNames.length > 0 && (
+      <div className="mb-4 text-sm text-white-900 bg-yellow-100 dark:bg-gray-700 p-2 rounded">
+        <div className="font-bold">以下の技は有利フレームに幅があるため、最良/最悪に分割表示されます:</div>
+        <ul className="list-disc pl-5 mt-1">
+          {splitEnemyMoveNames.map((name, i) => (
+            <li key={i}>{name}</li>
+          ))}
+        </ul>
+      </div>
+    )}
 
 
 
