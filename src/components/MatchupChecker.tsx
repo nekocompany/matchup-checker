@@ -166,13 +166,13 @@ const MatchupChecker: React.FC = () => {
   
 
   useEffect(() => {
-    fetch('/data/character_list.json')
+    fetch(`${import.meta.env.BASE_URL}data/character_list.json`)
       .then((res) => res.json())
       .then((data) => setCharacterList(data));
   }, []);
 
   useEffect(() => {
-    fetch(`/data/${player}_moves.json`)
+    fetch(`${import.meta.env.BASE_URL}data/${player}_moves.json`)
       .then((res) => res.json())
       .then((data) => {
         const filtered = data.filter((m: Move) => m.type !== '共通システム');
@@ -183,7 +183,7 @@ const MatchupChecker: React.FC = () => {
   }, [player]);
 
   useEffect(() => {
-    fetch(`/data/${opponent}_moves.json`)
+    fetch(`${import.meta.env.BASE_URL}data/${opponent}_moves.json`)
       .then((res) => res.json())
       .then((data) => {
         const filtered = data.filter((m: EnemyMove) => m.type !== '共通システム');
