@@ -85,9 +85,9 @@ const MatchupChecker: React.FC = () => {
   const [opponent, setOpponent] = useState<string>('ryu');
   const [playerData, setPlayerData] = useState<CharacterData | null>(null);
   const [opponentData, setOpponentData] = useState<EnemyData | null>(null);
-  const [selectedEnemyMove, setSelectedEnemyMove] = useState<EnemyMove | null>(null);
+  //const [selectedEnemyMove, setSelectedEnemyMove] = useState<EnemyMove | null>(null);
   const [opponentStartup, setOpponentStartup] = useState<number>(4);
-  const [viewMode, setViewMode] = useState<'detail' | 'matrix'>('detail');
+  //const [viewMode, setViewMode] = useState<'detail' | 'matrix'>('detail');
   const [pinnedPlayerMoves, setPinnedPlayerMoves] = useState<string[]>([]);
   const [pinnedEnemyMoves, setPinnedEnemyMoves] = useState<string[]>([]);
   const [hiddenPlayerMoves, setHiddenPlayerMoves] = useState<string[]>([]);
@@ -111,18 +111,18 @@ const MatchupChecker: React.FC = () => {
   const [enemyMoveNameFilter, setEnemyMoveNameFilter] = useState<string>('');
 
   // 最悪最良注意書き用
-  const [splitEnemyMoveNames, setSplitEnemyMoveNames] = useState<string[]>([]);
+  //const [splitEnemyMoveNames, setSplitEnemyMoveNames] = useState<string[]>([]);
   const [showSplitInfo, setShowSplitInfo] = useState<boolean>(false);
 
   // 説明書開閉
   const [showHelp, setShowHelp] = useState(false);
   //免責事項
-  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  //const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   const [splitEnemyMoveInfos, setSplitEnemyMoveInfos] = useState<SplitEnemyMoveInfo[]>([]);
 
 
-  const splitNamesTemp: string[] = [];
+  //const splitNamesTemp: string[] = [];
 
   const expandEnemyMoves = (
     moves: EnemyMove[],
