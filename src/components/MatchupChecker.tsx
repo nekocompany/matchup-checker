@@ -161,8 +161,10 @@ const MatchupChecker: React.FC = () => {
     return expanded;
   };
   
-
-  
+  //ダークモードデフォルト
+  useEffect(() => {
+    document.documentElement.classList.add('dark');
+  }, []);
   
 
   useEffect(() => {
