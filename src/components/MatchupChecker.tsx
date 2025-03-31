@@ -114,6 +114,11 @@ const MatchupChecker: React.FC = () => {
   const [splitEnemyMoveNames, setSplitEnemyMoveNames] = useState<string[]>([]);
   const [showSplitInfo, setShowSplitInfo] = useState<boolean>(false);
 
+  // 説明書開閉
+  const [showHelp, setShowHelp] = useState(false);
+  //免責事項
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+
   const [splitEnemyMoveInfos, setSplitEnemyMoveInfos] = useState<SplitEnemyMoveInfo[]>([]);
 
 
@@ -294,7 +299,65 @@ const MatchupChecker: React.FC = () => {
 
   return (
     <div className="p-4 text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-900 min-h-screen">
-      <h2 className="text-2xl font-bold mb-4">Matchup Checker</h2>
+      <h2 className="text-2xl font-bold mb-4">Matchup Checker(非公式スト6ガード硬直差考察アプリ)</h2>
+
+      <div className="mb-4">
+       
+          <div className="mt-2 p-3 bg-red-100 dark:bg-gray-800 text-sm rounded leading-relaxed text-white-800 dark:text-white-300">
+            <p>このツールは個人が制作したものであり、正確性や完全性を保証するものではありません。</p>
+            <p>掲載されたデータや判定結果に基づく損害や不利益に対して、製作者は一切の責任を負いません。</p>
+            <p>あくまで参考用途としてご利用ください。</p>
+            <p>ご意見ご感想、誤記載の報告などありましたら以下まで御連絡ください。</p>
+            <p>
+              制作者、連絡先: ネコ缶
+              <a href="https://x.com/nekokan" target="_blank" rel="noopener noreferrer" className="text-blue-300 underline">
+                https://x.com/nekokan
+              </a>
+            </p>
+          </div>
+        
+      </div>
+
+      <div className="mb-4">
+        <button
+          onClick={() => setShowHelp((prev) => !prev)}
+          className="text-sm bg-gray-600 text-white px-3 py-1 rounded"
+        >
+          {showHelp ? '▲ 使い方を隠す' : '▼ 使い方を見る'}
+        </button>
+
+        {showHelp && (
+          <div className="mt-2 p-3 bg-blue-100 dark:bg-gray-800 text-sm rounded leading-relaxed">
+            <p>このツールは、自キャラの技と相手キャラのガード時フレーム差から、</p>
+            <p>ガード後に出す自分の技の勝ち負けを判定します</p>
+            <p>相手の何らかの技をガードしたときに通常技を出すべきかの判断にお使いください。</p>
+            <ul className="list-disc pl-5 mt-2">
+              <li>便利な使い方や詳細は以下のURLをチェックしてください</li>
+              <li>
+                <a href="https://note.com/nekocompany/n/nb8452c09b42b" target="_blank" rel="noopener noreferrer" className="text-blue-300 underline">
+                  https://note.com/nekocompany/n/nb8452c09b42b
+                </a>
+              </li>
+              <li>「自キャラ」「相手キャラ」を選択してください。</li>
+              <li>横列:相手の技一覧。これらをガードした後どうするかを考察します(自分の硬直fが大きいものが左)</li>
+              <li>縦列:自分の技一覧(発生の早いものが上)</li>
+              <li>「相手の次の技の発生」には、相手の技一覧の技をガード後に出す技の発生フレームを入力します。</li>
+              <li>表は、「自キャラ技 × 相手の次の技」の勝ち負け（〇勝ち/△相打ち/×負け）を表示します。</li>
+              <li>フィルターやピン留め、非表示などで技を整理できます。</li>
+              <li>硬直差毎に色分けしています。</li>
+              <li>赤:ガードしたとき自分の不利フレームが大きい技。基本的に動けません</li>
+              <li>グレー:±ゼロ。つまり互いに4fを出せば相打ちになります</li>
+              <li>青:ガードしたとき相手の不利フレームが大きい技。こちらが速い技を出せば、相手が技を出していれば勝ちます</li>
+              <li>緑:相手の不利フレーム-4以下の技。つまり確反があるという事です。</li>
+              <li>△(0)この数字は自分の技と相手の次の技の差し引きです。</li>
+              <li>△(0)なら互いに理論値で出せば相打ち、〇(1)なら理論上勝てるが猶予は1f、×(-1)なら理論上勝てないが相手が遅れれば或いは、〇(5)ならかなり余裕を持って勝てます。</li>
+              
+            </ul>
+          </div>
+        )}
+      </div>
+
+      
 
       <button
           onClick={() => document.documentElement.classList.toggle('dark')}
