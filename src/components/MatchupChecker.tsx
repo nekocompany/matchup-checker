@@ -45,8 +45,11 @@ const toValidGuard = (s: string): number => {
   return /^[-+]?\d+$/.test(s.trim()) ? parseInt(s.trim()) : Number.MIN_SAFE_INTEGER;
 };
 
-const extractGuardValue = (move: EnemyMove) => {
-  
+const extractGuardValue = (
+  move: EnemyMove,
+  isDriveRush: boolean,
+  isBurnout: boolean
+) => {
   if (move.attribute === '投') {
     return <span>（<span className="font-bold">投</span>）</span>;
   }
@@ -54,7 +57,8 @@ const extractGuardValue = (move: EnemyMove) => {
   const guard = move.guard?.trim();
   if (!guard) return <span>（-）</span>;
 
-  const match = guard.match(/^[-+]?\d+$/);
+  const adjusted = adjustGuardValue(guard, move.type, isDriveRush, isBurnout);
+  const match = adjusted.match(/^[-+]?\d+$/);
   if (match) {
     return (
       <span>
@@ -65,6 +69,32 @@ const extractGuardValue = (move: EnemyMove) => {
 
   return <span>（-）</span>;
 };
+
+
+
+//DR、バーンアウト用
+const adjustGuardValue = (original: string, type: string | undefined, isDriveRush: boolean, isBurnout: boolean): string => {
+  const raw = parseInt(original);
+  if (isNaN(raw)) return original;
+
+  let bonus = 0;
+
+  if (isDriveRush && isBurnout) {
+    if (type === '通常技' || type === '特殊技') {
+      bonus = 8;
+    } else {
+      bonus = 4;
+    }
+  } else if (isDriveRush) {
+    if (type === '通常技' || type === '特殊技') bonus = 4;
+  } else if (isBurnout) {
+    bonus = 4;
+  }
+
+  return (raw + bonus).toString();
+};
+
+
 
 const splitNameSmart = (name: string): [string, string] => {
   const bracketMatch = name.match(/^([\[【].*?[\]】])\s*(.*)/);
@@ -101,6 +131,10 @@ const MatchupChecker: React.FC = () => {
 
   const [enemyGuardMin, setEnemyGuardMin] = useState<number | null>(null);
   const [enemyGuardMax, setEnemyGuardMax] = useState<number | null>(null);
+
+  // DR、バーンアウトモード用
+  const [isDriveRush, setIsDriveRush] = useState(false);
+  const [isBurnout, setIsBurnout] = useState(false);
 
   // 絞り込み対象の技名（nullなら全表示）
   const [focusedPlayerMove, setFocusedPlayerMove] = useState<string | null>(null);
@@ -197,13 +231,14 @@ const MatchupChecker: React.FC = () => {
       });
   }, [opponent]);
 
-  const renderResult = (startup: string, advantage: string, opponent: number): string => {
+  const renderResult = (startup: string, guard: string, opponent: number): string => {
+    const adjustedGuard = adjustGuardValue(guard, undefined, isDriveRush, isBurnout); // プレイヤーの技には type 情報なし
     const s = parseInt(startup);
-    const a = parseInt(advantage);
+    const a = parseInt(adjustedGuard);
     if (isNaN(s) || isNaN(a)) return '-';
   
-    const diff = opponent - a;       // 技をガードしてから相手が動けるまでのフレーム
-    const margin = diff - s;         // 自キャラ技が間に合うまでの余裕
+    const diff = opponent - a;
+    const margin = diff - s;
   
     let resultSymbol = '';
     if (margin > 0) resultSymbol = '〇';
@@ -249,9 +284,10 @@ const MatchupChecker: React.FC = () => {
     if (!opponentData) return [];
     return opponentData.moves
       .filter((m) => {
-        if (focusedEnemyMove && m.name !== focusedEnemyMove) return false; // ←追加
+        if (focusedEnemyMove && m.name !== focusedEnemyMove) return false;
         if (enemyMoveNameFilter && !m.name.includes(enemyMoveNameFilter)) return false;
-        const val = toValidGuard(m.guard || '');
+        const adjusted = adjustGuardValue(m.guard || '', m.type, isDriveRush, isBurnout);
+        const val = toValidGuard(adjusted);
         return (
           !hiddenEnemyMoves.includes(m.name) &&
           (enemyGuardMin === null || val >= enemyGuardMin) &&
@@ -259,13 +295,16 @@ const MatchupChecker: React.FC = () => {
         );
       })
       .sort((a, b) => {
+        const aVal = toValidGuard(adjustGuardValue(a.guard || '', a.type, isDriveRush, isBurnout));
+        const bVal = toValidGuard(adjustGuardValue(b.guard || '', b.type, isDriveRush, isBurnout));
         const aPinned = pinnedEnemyMoves.includes(a.name);
         const bPinned = pinnedEnemyMoves.includes(b.name);
         if (aPinned && !bPinned) return -1;
         if (!aPinned && bPinned) return 1;
-        return toValidGuard(b.guard) - toValidGuard(a.guard);
+        return bVal - aVal;
       });
   };
+  
 
   const togglePlayerPin = (name: string) => {
     setPinnedPlayerMoves(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
@@ -369,6 +408,10 @@ const MatchupChecker: React.FC = () => {
         </button>
 
       <div className="flex flex-wrap gap-4 items-end mb-6">
+        
+
+
+
         <label className="flex flex-col text-sm">
           自キャラ
           <select value={player} onChange={(e) => setPlayer(e.target.value)} className="mt-1 p-1 rounded bg-white dark:bg-gray-700">
@@ -422,7 +465,30 @@ const MatchupChecker: React.FC = () => {
       </div>
     </div>
     </div>
+
+
+    <div className="flex gap-4 mb-4">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={isDriveRush}
+                onChange={() => setIsDriveRush(prev => !prev)}
+              />
+              ドライブラッシュ中（+4）
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={isBurnout}
+                onChange={() => setIsBurnout(prev => !prev)}
+              />
+              自キャラバーンアウト中（+4）
+            </label>
+      </div>
     
+
+
+
     <div className="flex gap-4 items-end text-sm mb-4">
       <div>
         <label>自キャラ技名フィルタ:</label>
@@ -557,7 +623,7 @@ const MatchupChecker: React.FC = () => {
                 key={idx}
                 className={`border px-2 py-1 text-xs break-words whitespace-normal min-w-[6rem] ${bgColorClass}`}
               >
-                <div>{extractGuardValue(em)}</div>
+                <div>{extractGuardValue(em, isDriveRush, isBurnout)}</div>
                 <div>{line1}</div>
                 <div>{line2}</div>
                 <div className="flex gap-1 justify-center mt-1 text-xs">
