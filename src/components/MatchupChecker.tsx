@@ -607,13 +607,17 @@ const MatchupChecker: React.FC = () => {
           <th className="border px-2 py-1 min-w-[8rem] text-sm">技名</th>
           {getSortedEnemyMoves().map((em, idx) => {
             const [line1, line2] = splitNameSmart(em.name);
-            const guardValue = toValidGuard(em.guard || '');
+
+            // ✅ 補正された guard 値に基づいて色判定
+            const adjustedGuard = adjustGuardValue(em.guard || '', em.type, isDriveRush, isBurnout);
+            const guardValue = toValidGuard(adjustedGuard);
+
             let bgColorClass = 'bg-gray-200 dark:bg-gray-700'; // デフォルト
 
             if (guardValue > 0) {
               bgColorClass = 'bg-rose-800 text-white'; // 危険技（+）
             } else if (guardValue <= -4) {
-              bgColorClass = 'bg-green-800 text-white'; // 確反あり技（-4以下）
+              bgColorClass = 'bg-green-800 text-white'; // 確反あり（-4以下）
             } else if (guardValue < 0) {
               bgColorClass = 'bg-blue-700 text-white'; // 安全技（-1 ～ -3）
             }
@@ -654,7 +658,8 @@ const MatchupChecker: React.FC = () => {
             );
           })}
         </tr>
-      </thead>
+    </thead>
+
       <tbody>
         {getSortedPlayerMoves().map((pm, idx) => (
           <tr key={idx} className="even:bg-gray-50 dark:even:bg-gray-800">
