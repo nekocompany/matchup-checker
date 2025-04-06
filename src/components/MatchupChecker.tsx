@@ -73,22 +73,34 @@ const extractGuardValue = (
 
 
 //DR、バーンアウト用
-const adjustGuardValue = (original: string, type: string | undefined, isDriveRush: boolean, isBurnout: boolean): string => {
+const adjustGuardValue = (
+  original: string,
+  type: string | undefined,
+  isDriveRush: boolean,
+  isBurnout: boolean
+): string => {
   const raw = parseInt(original);
   if (isNaN(raw)) return original;
 
   let bonus = 0;
 
+  const isNormalOrUnique = type === '通常技' || type === '特殊技';
+  const isSpecialOrSA = type === '必殺技' || type === 'スーパーアーツ';
+
   if (isDriveRush && isBurnout) {
-    if (type === '通常技' || type === '特殊技') {
+    if (isNormalOrUnique) {
       bonus = 8;
-    } else {
+    } else if (isSpecialOrSA) {
       bonus = 4;
     }
   } else if (isDriveRush) {
-    if (type === '通常技' || type === '特殊技') bonus = 4;
+    if (isNormalOrUnique) {
+      bonus = 4;
+    }
   } else if (isBurnout) {
-    bonus = 4;
+    if (isNormalOrUnique || isSpecialOrSA) {
+      bonus = 4;
+    }
   }
 
   return (raw + bonus).toString();
@@ -692,7 +704,7 @@ const MatchupChecker: React.FC = () => {
             </td>
             {getSortedEnemyMoves().map((em, j) => (
               <td key={j} className="border px-2 py-1 text-center min-w-[6rem]">
-                {renderResult(pm.startup, em.guard, opponentStartup)}
+                {renderResult(pm.startup, adjustGuardValue(em.guard || '', em.type, isDriveRush, isBurnout), opponentStartup)}
               </td>
             ))}
           </tr>
